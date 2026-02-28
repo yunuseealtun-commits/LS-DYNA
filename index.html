@@ -1,17 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keyword Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
-        #root { height: 100%; }
-    </style>
-    <script type="importmap">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keyword Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    #root {
+      height: 100%;
+    }
+  </style>
+  <script type="importmap">
       {
         "imports": {
           "react": "https://esm.sh/react@18",
@@ -22,986 +31,1040 @@
       }
     </script>
 </head>
+
 <body>
-    <div id="root"></div>
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo, useCallback } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import { Minus, Plus, Search, FileText, Folder, Settings, X, Square } from 'lucide-react';
-        import ReactQuill from 'react-quill';
+  <div id="root"></div>
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useMemo, useCallback } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { Minus, Plus, Search, FileText, Folder, Settings, X, Square } from 'lucide-react';
+    import ReactQuill from 'react-quill';
 
-        const initialTreeData = [
-  { id: 'kw', name: '*KEYWORD', type: 'item', color: '#000000' },
-  { id: 'tit', name: '*TITLE', type: 'item', color: '#000000', rows: [[{ label: 'TITLE', val: 'LS-DYNA keyword deck by LS-PrePost' }]] },
-  {
-    id: 'control', name: '*CONTROL', type: 'group', color: '#000000',
-    children: [
+    const initialTreeData = [
+      { id: 'kw', name: '*KEYWORD', type: 'item', color: '#000000' },
+      { id: 'tit', name: '*TITLE', type: 'item', color: '#000000', rows: [[{ label: 'TITLE', val: 'LS-DYNA keyword deck by LS-PrePost' }]] },
       {
-        id: 'c1', name: 'CONTROL_CONTACT', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'SLSFAC', val: '10.0' }, { label: 'RWPNAL', val: '0.0' }, { label: 'ISLCHK', val: '1' }, { label: 'SHLTHK', val: '0' }, { label: 'PENOPT', val: '1' }, { label: 'THKCHG', val: '0' }, { label: 'ORIEN', val: '1' }, { label: 'ENMASS', val: '0' }],
-          [{ label: 'USRSTR', val: '0' }, { label: 'USRFRC', val: '0' }, { label: 'NSBCS', val: '0' }, { label: 'INTERM', val: '0' }, { label: 'XPENE', val: '4.0' }, { label: 'SSTHK', val: '0' }, { label: 'ECDT', val: '0' }, { label: 'TIEDPRJ', val: '0' }],
-          [{ label: 'SFRIC', val: '0.0' }, { label: 'DFRIC', val: '0.0' }, { label: 'EDC', val: '0.0' }, { label: 'VFC', val: '0.0' }, { label: 'TH', val: '0.0' }, { label: 'TH_SF', val: '0.0' }, { label: 'PEN_SF', val: '0.0' }, { label: '', val: '' }],
-          [{ label: 'IGNORE', val: '0' }, { label: 'FRCENG', val: '0' }, { label: 'SKIPRWG', val: '0' }, { label: 'OUTSEG', val: '0' }, { label: 'SPOTSTP', val: '0' }, { label: 'SPOTDEL', val: '0' }, { label: 'SPOTHIN', val: '0.0' }, { label: '', val: '' }],
-          [{ label: 'ISYM', val: '1' }, { label: 'NSEROD', val: '0' }, { label: 'RWGAPS', val: '1' }, { label: 'RWGDTH', val: '0.0' }, { label: 'RWKSF', val: '1.0' }, { label: 'ICOV', val: '0' }, { label: 'SWRADF', val: '0.0' }, { label: 'ITHOFF', val: '0' }],
-          [{ label: 'SHLEDG', val: '0' }, { label: 'PSTIFF', val: '0' }, { label: 'ITHCNT', val: '0' }, { label: 'TDCNOF', val: '0' }, { label: 'FTALL', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'SHLTRW', val: '0.0' }, { label: 'IGACTC', val: '0' }]
+        id: 'control', name: '*CONTROL', type: 'group', color: '#000000',
+        children: [
+          {
+            id: 'c1', name: 'CONTROL_CONTACT', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'SLSFAC', val: '10.0' }, { label: 'RWPNAL', val: '0.0' }, { label: 'ISLCHK', val: '1' }, { label: 'SHLTHK', val: '0' }, { label: 'PENOPT', val: '1' }, { label: 'THKCHG', val: '0' }, { label: 'ORIEN', val: '1' }, { label: 'ENMASS', val: '0' }],
+              [{ label: 'USRSTR', val: '0' }, { label: 'USRFRC', val: '0' }, { label: 'NSBCS', val: '0' }, { label: 'INTERM', val: '0' }, { label: 'XPENE', val: '4.0' }, { label: 'SSTHK', val: '0' }, { label: 'ECDT', val: '0' }, { label: 'TIEDPRJ', val: '0' }],
+              [{ label: 'SFRIC', val: '0.0' }, { label: 'DFRIC', val: '0.0' }, { label: 'EDC', val: '0.0' }, { label: 'VFC', val: '0.0' }, { label: 'TH', val: '0.0' }, { label: 'TH_SF', val: '0.0' }, { label: 'PEN_SF', val: '0.0' }, { label: '', val: '' }],
+              [{ label: 'IGNORE', val: '0' }, { label: 'FRCENG', val: '0' }, { label: 'SKIPRWG', val: '0' }, { label: 'OUTSEG', val: '0' }, { label: 'SPOTSTP', val: '0' }, { label: 'SPOTDEL', val: '0' }, { label: 'SPOTHIN', val: '0.0' }, { label: '', val: '' }],
+              [{ label: 'ISYM', val: '1' }, { label: 'NSEROD', val: '0' }, { label: 'RWGAPS', val: '1' }, { label: 'RWGDTH', val: '0.0' }, { label: 'RWKSF', val: '1.0' }, { label: 'ICOV', val: '0' }, { label: 'SWRADF', val: '0.0' }, { label: 'ITHOFF', val: '0' }],
+              [{ label: 'SHLEDG', val: '0' }, { label: 'PSTIFF', val: '0' }, { label: 'ITHCNT', val: '0' }, { label: 'TDCNOF', val: '0' }, { label: 'FTALL', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'SHLTRW', val: '0.0' }, { label: 'IGACTC', val: '0' }]
+            ]
+          },
+          {
+            id: 'c2', name: 'CONTROL_SPH', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'NCBS', val: '1' }, { label: 'BOXID', val: '0' }, { label: 'DT', val: '1.00000E20' }, { label: 'IDIM', val: '3' }, { label: 'NMNEIGH', val: '150' }, { label: 'FORM', val: '0' }, { label: 'START', val: '0.0' }, { label: 'MAXV', val: '1.00000E15' }],
+              [{ label: 'CONT', val: '0' }, { label: 'DERIV', val: '0' }, { label: 'INI', val: '0' }, { label: 'ISHOW', val: '0' }, { label: 'IEROD', val: '0' }, { label: 'ICONT', val: '0' }, { label: 'IAVIS', val: '0' }, { label: 'ISYMP', val: '10' }],
+              [{ label: 'ITHK', val: '1' }, { label: 'ISTAB', val: '0' }, { label: 'QL', val: '0.01' }, { label: 'UNUSED', val: '' }, { label: 'SPHSORT', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          },
+          {
+            id: 'c3', name: 'CONTROL_TERMINATION', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'ENDTIM', val: '0.007' }, { label: 'ENDCYC', val: '0' }, { label: 'DTMIN', val: '0.0' }, { label: 'ENDENG', val: '0.0' }, { label: 'ENDMAS', val: '1.000000E8' }, { label: 'NOSOL', val: '0' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          },
+          {
+            id: 'c4', name: 'CONTROL_TIMESTEP', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'DTINIT', val: '0.0' }, { label: 'TSSFAC', val: '0.25' }, { label: 'ISDO', val: '0' }, { label: 'TSLIMT', val: '0.0' }, { label: 'DT2MS', val: '0.0' }, { label: 'LCTM', val: '0' }, { label: 'ERODE', val: '0' }, { label: 'MS1ST', val: '0' }],
+              [{ label: 'DT2MSF', val: '0.0' }, { label: 'DT2MSLC', val: '0' }, { label: 'IMSCL', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'RMSCL', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'IHDO', val: '0' }]
+            ]
+          }
         ]
       },
       {
-        id: 'c2', name: 'CONTROL_SPH', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'NCBS', val: '1' }, { label: 'BOXID', val: '0' }, { label: 'DT', val: '1.00000E20' }, { label: 'IDIM', val: '3' }, { label: 'NMNEIGH', val: '150' }, { label: 'FORM', val: '0' }, { label: 'START', val: '0.0' }, { label: 'MAXV', val: '1.00000E15' }],
-          [{ label: 'CONT', val: '0' }, { label: 'DERIV', val: '0' }, { label: 'INI', val: '0' }, { label: 'ISHOW', val: '0' }, { label: 'IEROD', val: '0' }, { label: 'ICONT', val: '0' }, { label: 'IAVIS', val: '0' }, { label: 'ISYMP', val: '10' }],
-          [{ label: 'ITHK', val: '1' }, { label: 'ISTAB', val: '0' }, { label: 'QL', val: '0.01' }, { label: 'UNUSED', val: '' }, { label: 'SPHSORT', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
+        id: 'database', name: '*DATABASE', type: 'group', color: '#000000',
+        children: [
+          { id: 'd1', name: 'DATABASE_GLSTAT', type: 'item', color: '#000000', rows: [[{ label: 'DT', val: '0.005' }, { label: 'BINARY', val: '0' }, { label: 'LCUR', val: '0' }, { label: 'IOOPT', val: '1' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] },
+          { id: 'd2', name: 'DATABASE_MATSUM', type: 'item', color: '#000000', rows: [[{ label: 'DT', val: '0.005' }, { label: 'BINARY', val: '0' }, { label: 'LCUR', val: '0' }, { label: 'IOOPT', val: '1' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] },
+          {
+            id: 'd3', name: 'DATABASE_BINARY_D3PLOT', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'DT', val: '0.0' }, { label: 'LCDT', val: '0' }, { label: 'BEAM', val: '0' }, { label: 'NPLTC', val: '40' }, { label: 'PSETID', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
+              [{ label: 'IOOPT', val: '0' }, { label: 'RATE', val: '0.0' }, { label: 'CUTOFF', val: '0.0' }, { label: 'WINDOW', val: '0.0' }, { label: 'TYPE', val: '0' }, { label: 'PSET', val: '0' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          }
         ]
       },
       {
-        id: 'c3', name: 'CONTROL_TERMINATION', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'ENDTIM', val: '0.007' }, { label: 'ENDCYC', val: '0' }, { label: 'DTMIN', val: '0.0' }, { label: 'ENDENG', val: '0.0' }, { label: 'ENDMAS', val: '1.000000E8' }, { label: 'NOSOL', val: '0' }, { label: '', val: '' }, { label: '', val: '' }]
+        id: 'boundary', name: '*BOUNDARY', type: 'group', color: '#000000',
+        children: [
+          { id: 'b1', name: 'BOUNDARY_SPC_SET', type: 'item', color: '#000000', rows: [[{ label: 'NSID', val: '1' }, { label: 'CID', val: '0' }, { label: 'DOFX', val: '1' }, { label: 'DOFY', val: '1' }, { label: 'DOFZ', val: '1' }, { label: 'DOFRX', val: '1' }, { label: 'DOFRY', val: '1' }, { label: 'DOFRZ', val: '1' }]] },
+          { id: 'b2', name: 'BOUNDARY_SPH_SYMMETRY_PLANE', type: 'item', color: '#000000', rows: [[{ label: 'VTX', val: '0.0' }, { label: 'VTY', val: '0.0' }, { label: 'VTZ', val: '0.0' }, { label: 'VHX', val: '0.0' }, { label: 'VHY', val: '1.0' }, { label: 'VHZ', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }]] }
         ]
       },
       {
-        id: 'c4', name: 'CONTROL_TIMESTEP', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'DTINIT', val: '0.0' }, { label: 'TSSFAC', val: '0.25' }, { label: 'ISDO', val: '0' }, { label: 'TSLIMT', val: '0.0' }, { label: 'DT2MS', val: '0.0' }, { label: 'LCTM', val: '0' }, { label: 'ERODE', val: '0' }, { label: 'MS1ST', val: '0' }],
-          [{ label: 'DT2MSF', val: '0.0' }, { label: 'DT2MSLC', val: '0' }, { label: 'IMSCL', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'RMSCL', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'IHDO', val: '0' }]
+        id: 'contact', name: '*CONTACT', type: 'group', color: '#000000',
+        children: [
+          {
+            id: 'cnt1', name: 'CONTACT_ERODING_SURFACE_TO_SURFACE_ID', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'CID', val: '1' }, { label: 'TITLE', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
+              [{ label: 'SSID', val: '2' }, { label: 'MSID', val: '1' }, { label: 'SSTYP', val: '3' }, { label: 'MSTYP', val: '3' }, { label: 'SBOXID', val: '0' }, { label: 'MBOXID', val: '0' }, { label: 'SPR', val: '0' }, { label: 'MPR', val: '0' }],
+              [{ label: 'FS', val: '0.0' }, { label: 'FD', val: '0.0' }, { label: 'DC', val: '0.0' }, { label: 'VC', val: '0.0' }, { label: 'VDC', val: '0.0' }, { label: 'PENCHK', val: '0' }, { label: 'BT', val: '0.0' }, { label: 'DT', val: '1.00000E20' }],
+              [{ label: 'SFS', val: '1.0' }, { label: 'SFM', val: '1.0' }, { label: 'SST', val: '0.0' }, { label: 'MST', val: '0.0' }, { label: 'SFST', val: '1.0' }, { label: 'SFMT', val: '1.0' }, { label: 'FSF', val: '1.0' }, { label: 'VSF', val: '1.0' }],
+              [{ label: 'ISYM', val: '1' }, { label: 'EROSOP', val: '1' }, { label: 'IADJ', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
+              [{ label: 'SOFT', val: '1' }, { label: 'SOFSCL', val: '0.1' }, { label: 'LCIDAB', val: '0' }, { label: 'MAXPAR', val: '1.025' }, { label: 'SBOPT', val: '2.0' }, { label: 'DEPTH', val: '3' }, { label: 'BSORT', val: '0' }, { label: 'FRCFRQ', val: '1' }]
+            ]
+          }
+        ]
+      },
+      {
+        id: 'part', name: '*PART', type: 'group', color: '#000000',
+        children: [
+          { id: 'p1', name: 'PART (boxsolid)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '1' }, { label: 'SECID', val: '2' }, { label: 'MID', val: '2' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '2' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
+          { id: 'p2', name: 'PART (spheresolid)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '2' }, { label: 'SECID', val: '2' }, { label: 'MID', val: '1' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '2' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
+          { id: 'p3', name: 'PART (newgen_sph)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '3' }, { label: 'SECID', val: '1' }, { label: 'MID', val: '2' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '1' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
+          { id: 'p4', name: 'PART (newgen_sphball)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '5' }, { label: 'SECID', val: '1' }, { label: 'MID', val: '1' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '1' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] }
+        ]
+      },
+      {
+        id: 'mat', name: '*MAT', type: 'group', color: '#000000',
+        children: [
+          {
+            id: 'mat1', name: 'MAT_JOHNSON_COOK (6061)', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'MID', val: '2' }, { label: 'RO', val: '2.75000E-6' }, { label: 'G', val: '27.6' }, { label: 'E', val: '0.0' }, { label: 'PR', val: '0.33' }, { label: 'DTF', val: '0.0' }, { label: 'VP', val: '0.0' }, { label: 'RATEOP', val: '0.0' }],
+              [{ label: 'A', val: '0.324' }, { label: 'B', val: '0.114' }, { label: 'N', val: '0.42' }, { label: 'C', val: '0.002' }, { label: 'M', val: '1.34' }, { label: 'TM', val: '920.0' }, { label: 'TR', val: '300.0' }, { label: 'EPSO', val: '0.001' }],
+              [{ label: 'CP', val: '900.0' }, { label: 'PC', val: '0.0' }, { label: 'SPALL', val: '3.0' }, { label: 'IT', val: '0.0' }, { label: 'D1', val: '1.0' }, { label: 'D2', val: '0.0' }, { label: 'D3', val: '0.0' }, { label: 'D4', val: '0.0' }],
+              [{ label: 'D5', val: '0.0' }, { label: 'C2/P', val: '0.0' }, { label: 'EROD', val: '0' }, { label: 'EFMIN', val: '1.0E-6' }, { label: 'NUMINT', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          },
+          {
+            id: 'mat2', name: 'MAT_JOHNSON_COOK (2024)', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'MID', val: '1' }, { label: 'RO', val: '2.77000E-6' }, { label: 'G', val: '27.6' }, { label: 'E', val: '0.0' }, { label: 'PR', val: '0.33' }, { label: 'DTF', val: '0.0' }, { label: 'VP', val: '0.0' }, { label: 'RATEOP', val: '0.0' }],
+              [{ label: 'A', val: '0.26' }, { label: 'B', val: '0.426' }, { label: 'N', val: '0.34' }, { label: 'C', val: '0.018' }, { label: 'M', val: '1.0' }, { label: 'TM', val: '800.0' }, { label: 'TR', val: '300.0' }, { label: 'EPSO', val: '0.001' }],
+              [{ label: 'CP', val: '900.0' }, { label: 'PC', val: '0.0' }, { label: 'SPALL', val: '3.0' }, { label: 'IT', val: '0.0' }, { label: 'D1', val: '0.8' }, { label: 'D2', val: '0.0' }, { label: 'D3', val: '0.0' }, { label: 'D4', val: '0.0' }],
+              [{ label: 'D5', val: '0.0' }, { label: 'C2/P', val: '0.0' }, { label: 'EROD', val: '0' }, { label: 'EFMIN', val: '1.0E-6' }, { label: 'NUMINT', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          },
+          {
+            id: 'mat3', name: 'MAT_ADD_EROSION (ID 2)', type: 'item', color: '#000000',
+            rows: [
+              [{ label: 'MID', val: '2' }, { label: 'EXCL', val: '0.0' }, { label: 'MXPRES', val: '0.0' }, { label: 'MNEPS', val: '0.0' }, { label: 'EFFEPS', val: '0.0' }, { label: 'VOLEPS', val: '0.0' }, { label: 'NUMFIP', val: '1.0' }, { label: 'NCS', val: '1.0' }],
+              [{ label: 'MNPRES', val: '0.0' }, { label: 'SIGP1', val: '0.0' }, { label: 'SIGVM', val: '2.6' }, { label: 'MXEPS', val: '0.0' }, { label: 'EPSSH', val: '0.0' }, { label: 'SIGTH', val: '0.0' }, { label: 'IMPULSE', val: '0.0' }, { label: 'FAILTM', val: '0.0' }],
+              [{ label: 'IDAM', val: '0' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: 'LCREGD', val: '0' }],
+              [{ label: 'LCFLD', val: '0' }, { label: 'NSFF', val: '10' }, { label: 'EPSTHIN', val: '0.0' }, { label: 'ENGCRT', val: '0.0' }, { label: 'RADCRT', val: '0.0' }, { label: 'LCEPS12', val: '0' }, { label: 'LCEPS13', val: '0' }, { label: 'LCEPSMX', val: '0' }],
+              [{ label: 'DTEFLT', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'MXTMP', val: '0.0' }, { label: 'DTMIN', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
+            ]
+          }
+        ]
+      },
+      {
+        id: 'section', name: '*SECTION', type: 'group', color: '#000000',
+        children: [
+          { id: 's1', name: 'SECTION_SOLID', type: 'item', color: '#000000', rows: [[{ label: 'SECID', val: '2' }, { label: 'ELFORM', val: '-1' }, { label: 'AET', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'COHOFF', val: '0' }, { label: 'UNUSED', val: '' }]] },
+          { id: 's2', name: 'SECTION_SPH (1.5)', type: 'item', color: '#000000', rows: [[{ label: 'SECID', val: '1' }, { label: 'CSLH', val: '1.5' }, { label: 'HMIN', val: '0.2' }, { label: 'HMAX', val: '2.0' }, { label: 'SPHINI', val: '0.0' }, { label: 'DEATH', val: '1.0E20' }, { label: 'START', val: '0.0' }, { label: 'SPHKERN', val: '0' }]] }
+        ]
+      },
+      {
+        id: 'eos', name: '*EOS', type: 'group', color: '#000000',
+        children: [
+          { id: 'eos1', name: 'EOS_GRUNEISEN', type: 'item', color: '#000000', rows: [[{ label: 'EOSID', val: '1' }, { label: 'C', val: '5328.0' }, { label: 'S1', val: '1.339' }, { label: 'S2', val: '0.0' }, { label: 'S3', val: '0.0' }, { label: 'GAMAO', val: '1.97' }, { label: 'A', val: '0.0' }, { label: 'E0', val: '0.0' }], [{ label: 'V0', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'LCID', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] }
+        ]
+      },
+      {
+        id: 'hourglass', name: '*HOURGLASS', type: 'group', color: '#000000',
+        children: [
+          { id: 'hg1', name: 'HOURGLASS (solid)', type: 'item', color: '#000000', rows: [[{ label: 'HGID', val: '2' }, { label: 'IHQ', val: '3' }, { label: 'QM', val: '1.0' }, { label: 'IBQ', val: '0' }, { label: 'Q1', val: '1.5' }, { label: 'Q2', val: '0.06' }, { label: 'QB/VDC', val: '0.1' }, { label: 'QW', val: '0.1' }]] },
+          { id: 'hg2', name: 'HOURGLASS (sph)', type: 'item', color: '#000000', rows: [[{ label: 'HGID', val: '1' }, { label: 'IHQ', val: '0' }, { label: 'QM', val: '1.0' }, { label: 'IBQ', val: '0' }, { label: 'Q1', val: '1.0' }, { label: 'Q2', val: '1.0' }, { label: 'QB/VDC', val: '0.1' }, { label: 'QW', val: '0.1' }]] }
+        ]
+      },
+      {
+        id: 'initial', name: '*INITIAL', type: 'group', color: '#000000',
+        children: [
+          { id: 'ini1', name: 'INITIAL_VELOCITY_GENERATION', type: 'item', color: '#000000', rows: [[{ label: 'ID', val: '2' }, { label: 'STYP', val: '2' }, { label: 'OMEGA', val: '0.0' }, { label: 'VX', val: '0.0' }, { label: 'VY', val: '0.0' }, { label: 'VZ', val: '-6620.0' }, { label: 'IVATN', val: '0' }, { label: 'ICID', val: '0' }], [{ label: 'XC', val: '0.0' }, { label: 'YC', val: '0.0' }, { label: 'ZC', val: '0.0' }, { label: 'NX', val: '0.0' }, { label: 'NY', val: '0.0' }, { label: 'NZ', val: '0.0' }, { label: 'PHASE', val: '0' }, { label: 'IRIGID', val: '0' }]] }
+        ]
+      },
+      {
+        id: 'element', name: '*ELEMENT', type: 'group', color: '#000000',
+        children: [
+          { id: 'el1', name: 'ELEMENT_SOLID', type: 'item', color: '#000000', rows: [[{ label: 'EID', val: '' }, { label: 'PID', val: '' }, { label: 'N1', val: '' }, { label: 'N2', val: '' }, { label: 'N3', val: '' }, { label: 'N4', val: '' }, { label: 'N5', val: '' }, { label: 'N6', val: '' }]] }
         ]
       }
-    ]
-  },
-  {
-    id: 'database', name: '*DATABASE', type: 'group', color: '#000000',
-    children: [
-      { id: 'd1', name: 'DATABASE_GLSTAT', type: 'item', color: '#000000', rows: [[{ label: 'DT', val: '0.005' }, { label: 'BINARY', val: '0' }, { label: 'LCUR', val: '0' }, { label: 'IOOPT', val: '1' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] },
-      { id: 'd2', name: 'DATABASE_MATSUM', type: 'item', color: '#000000', rows: [[{ label: 'DT', val: '0.005' }, { label: 'BINARY', val: '0' }, { label: 'LCUR', val: '0' }, { label: 'IOOPT', val: '1' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] },
-      {
-        id: 'd3', name: 'DATABASE_BINARY_D3PLOT', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'DT', val: '0.0' }, { label: 'LCDT', val: '0' }, { label: 'BEAM', val: '0' }, { label: 'NPLTC', val: '40' }, { label: 'PSETID', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
-          [{ label: 'IOOPT', val: '0' }, { label: 'RATE', val: '0.0' }, { label: 'CUTOFF', val: '0.0' }, { label: 'WINDOW', val: '0.0' }, { label: 'TYPE', val: '0' }, { label: 'PSET', val: '0' }, { label: '', val: '' }, { label: '', val: '' }]
-        ]
-      }
-    ]
-  },
-  {
-    id: 'boundary', name: '*BOUNDARY', type: 'group', color: '#000000',
-    children: [
-      { id: 'b1', name: 'BOUNDARY_SPC_SET', type: 'item', color: '#000000', rows: [[{ label: 'NSID', val: '1' }, { label: 'CID', val: '0' }, { label: 'DOFX', val: '1' }, { label: 'DOFY', val: '1' }, { label: 'DOFZ', val: '1' }, { label: 'DOFRX', val: '1' }, { label: 'DOFRY', val: '1' }, { label: 'DOFRZ', val: '1' }]] },
-      { id: 'b2', name: 'BOUNDARY_SPH_SYMMETRY_PLANE', type: 'item', color: '#000000', rows: [[{ label: 'VTX', val: '0.0' }, { label: 'VTY', val: '0.0' }, { label: 'VTZ', val: '0.0' }, { label: 'VHX', val: '0.0' }, { label: 'VHY', val: '1.0' }, { label: 'VHZ', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }]] }
-    ]
-  },
-  {
-    id: 'contact', name: '*CONTACT', type: 'group', color: '#000000',
-    children: [
-      {
-        id: 'cnt1', name: 'CONTACT_ERODING_SURFACE_TO_SURFACE_ID', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'CID', val: '1' }, { label: 'TITLE', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
-          [{ label: 'SSID', val: '2' }, { label: 'MSID', val: '1' }, { label: 'SSTYP', val: '3' }, { label: 'MSTYP', val: '3' }, { label: 'SBOXID', val: '0' }, { label: 'MBOXID', val: '0' }, { label: 'SPR', val: '0' }, { label: 'MPR', val: '0' }],
-          [{ label: 'FS', val: '0.0' }, { label: 'FD', val: '0.0' }, { label: 'DC', val: '0.0' }, { label: 'VC', val: '0.0' }, { label: 'VDC', val: '0.0' }, { label: 'PENCHK', val: '0' }, { label: 'BT', val: '0.0' }, { label: 'DT', val: '1.00000E20' }],
-          [{ label: 'SFS', val: '1.0' }, { label: 'SFM', val: '1.0' }, { label: 'SST', val: '0.0' }, { label: 'MST', val: '0.0' }, { label: 'SFST', val: '1.0' }, { label: 'SFMT', val: '1.0' }, { label: 'FSF', val: '1.0' }, { label: 'VSF', val: '1.0' }],
-          [{ label: 'ISYM', val: '1' }, { label: 'EROSOP', val: '1' }, { label: 'IADJ', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }],
-          [{ label: 'SOFT', val: '1' }, { label: 'SOFSCL', val: '0.1' }, { label: 'LCIDAB', val: '0' }, { label: 'MAXPAR', val: '1.025' }, { label: 'SBOPT', val: '2.0' }, { label: 'DEPTH', val: '3' }, { label: 'BSORT', val: '0' }, { label: 'FRCFRQ', val: '1' }]
-        ]
-      }
-    ]
-  },
-  {
-    id: 'part', name: '*PART', type: 'group', color: '#000000',
-    children: [
-      { id: 'p1', name: 'PART (boxsolid)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '1' }, { label: 'SECID', val: '2' }, { label: 'MID', val: '2' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '2' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
-      { id: 'p2', name: 'PART (spheresolid)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '2' }, { label: 'SECID', val: '2' }, { label: 'MID', val: '1' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '2' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
-      { id: 'p3', name: 'PART (newgen_sph)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '3' }, { label: 'SECID', val: '1' }, { label: 'MID', val: '2' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '1' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] },
-      { id: 'p4', name: 'PART (newgen_sphball)', type: 'item', color: '#000000', rows: [[{ label: 'PID', val: '5' }, { label: 'SECID', val: '1' }, { label: 'MID', val: '1' }, { label: 'EOSID', val: '1' }, { label: 'HGID', val: '1' }, { label: 'GRAV', val: '0' }, { label: 'ADPOPT', val: '0' }, { label: 'TMID', val: '0' }]] }
-    ]
-  },
-  {
-    id: 'mat', name: '*MAT', type: 'group', color: '#000000',
-    children: [
-      {
-        id: 'mat1', name: 'MAT_JOHNSON_COOK (6061)', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'MID', val: '2' }, { label: 'RO', val: '2.75000E-6' }, { label: 'G', val: '27.6' }, { label: 'E', val: '0.0' }, { label: 'PR', val: '0.33' }, { label: 'DTF', val: '0.0' }, { label: 'VP', val: '0.0' }, { label: 'RATEOP', val: '0.0' }],
-          [{ label: 'A', val: '0.324' }, { label: 'B', val: '0.114' }, { label: 'N', val: '0.42' }, { label: 'C', val: '0.002' }, { label: 'M', val: '1.34' }, { label: 'TM', val: '920.0' }, { label: 'TR', val: '300.0' }, { label: 'EPSO', val: '0.001' }],
-          [{ label: 'CP', val: '900.0' }, { label: 'PC', val: '0.0' }, { label: 'SPALL', val: '3.0' }, { label: 'IT', val: '0.0' }, { label: 'D1', val: '1.0' }, { label: 'D2', val: '0.0' }, { label: 'D3', val: '0.0' }, { label: 'D4', val: '0.0' }],
-          [{ label: 'D5', val: '0.0' }, { label: 'C2/P', val: '0.0' }, { label: 'EROD', val: '0' }, { label: 'EFMIN', val: '1.0E-6' }, { label: 'NUMINT', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
-        ]
-      },
-      {
-        id: 'mat2', name: 'MAT_JOHNSON_COOK (2024)', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'MID', val: '1' }, { label: 'RO', val: '2.77000E-6' }, { label: 'G', val: '27.6' }, { label: 'E', val: '0.0' }, { label: 'PR', val: '0.33' }, { label: 'DTF', val: '0.0' }, { label: 'VP', val: '0.0' }, { label: 'RATEOP', val: '0.0' }],
-          [{ label: 'A', val: '0.26' }, { label: 'B', val: '0.426' }, { label: 'N', val: '0.34' }, { label: 'C', val: '0.018' }, { label: 'M', val: '1.0' }, { label: 'TM', val: '800.0' }, { label: 'TR', val: '300.0' }, { label: 'EPSO', val: '0.001' }],
-          [{ label: 'CP', val: '900.0' }, { label: 'PC', val: '0.0' }, { label: 'SPALL', val: '3.0' }, { label: 'IT', val: '0.0' }, { label: 'D1', val: '0.8' }, { label: 'D2', val: '0.0' }, { label: 'D3', val: '0.0' }, { label: 'D4', val: '0.0' }],
-          [{ label: 'D5', val: '0.0' }, { label: 'C2/P', val: '0.0' }, { label: 'EROD', val: '0' }, { label: 'EFMIN', val: '1.0E-6' }, { label: 'NUMINT', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
-        ]
-      },
-      {
-        id: 'mat3', name: 'MAT_ADD_EROSION (ID 2)', type: 'item', color: '#000000',
-        rows: [
-          [{ label: 'MID', val: '2' }, { label: 'EXCL', val: '0.0' }, { label: 'MXPRES', val: '0.0' }, { label: 'MNEPS', val: '0.0' }, { label: 'EFFEPS', val: '0.0' }, { label: 'VOLEPS', val: '0.0' }, { label: 'NUMFIP', val: '1.0' }, { label: 'NCS', val: '1.0' }],
-          [{ label: 'MNPRES', val: '0.0' }, { label: 'SIGP1', val: '0.0' }, { label: 'SIGVM', val: '2.6' }, { label: 'MXEPS', val: '0.0' }, { label: 'EPSSH', val: '0.0' }, { label: 'SIGTH', val: '0.0' }, { label: 'IMPULSE', val: '0.0' }, { label: 'FAILTM', val: '0.0' }],
-          [{ label: 'IDAM', val: '0' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: '-', val: '' }, { label: 'LCREGD', val: '0' }],
-          [{ label: 'LCFLD', val: '0' }, { label: 'NSFF', val: '10' }, { label: 'EPSTHIN', val: '0.0' }, { label: 'ENGCRT', val: '0.0' }, { label: 'RADCRT', val: '0.0' }, { label: 'LCEPS12', val: '0' }, { label: 'LCEPS13', val: '0' }, { label: 'LCEPSMX', val: '0' }],
-          [{ label: 'DTEFLT', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'MXTMP', val: '0.0' }, { label: 'DTMIN', val: '0.0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]
-        ]
-      }
-    ]
-  },
-  {
-    id: 'section', name: '*SECTION', type: 'group', color: '#000000',
-    children: [
-      { id: 's1', name: 'SECTION_SOLID', type: 'item', color: '#000000', rows: [[{ label: 'SECID', val: '2' }, { label: 'ELFORM', val: '-1' }, { label: 'AET', val: '0' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'UNUSED', val: '' }, { label: 'COHOFF', val: '0' }, { label: 'UNUSED', val: '' }]] },
-      { id: 's2', name: 'SECTION_SPH (1.5)', type: 'item', color: '#000000', rows: [[{ label: 'SECID', val: '1' }, { label: 'CSLH', val: '1.5' }, { label: 'HMIN', val: '0.2' }, { label: 'HMAX', val: '2.0' }, { label: 'SPHINI', val: '0.0' }, { label: 'DEATH', val: '1.0E20' }, { label: 'START', val: '0.0' }, { label: 'SPHKERN', val: '0' }]] }
-    ]
-  },
-  {
-    id: 'eos', name: '*EOS', type: 'group', color: '#000000',
-    children: [
-      { id: 'eos1', name: 'EOS_GRUNEISEN', type: 'item', color: '#000000', rows: [[{ label: 'EOSID', val: '1' }, { label: 'C', val: '5328.0' }, { label: 'S1', val: '1.339' }, { label: 'S2', val: '0.0' }, { label: 'S3', val: '0.0' }, { label: 'GAMAO', val: '1.97' }, { label: 'A', val: '0.0' }, { label: 'E0', val: '0.0' }], [{ label: 'V0', val: '0.0' }, { label: 'UNUSED', val: '' }, { label: 'LCID', val: '0' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }, { label: '', val: '' }]] }
-    ]
-  },
-  {
-    id: 'hourglass', name: '*HOURGLASS', type: 'group', color: '#000000',
-    children: [
-      { id: 'hg1', name: 'HOURGLASS (solid)', type: 'item', color: '#000000', rows: [[{ label: 'HGID', val: '2' }, { label: 'IHQ', val: '3' }, { label: 'QM', val: '1.0' }, { label: 'IBQ', val: '0' }, { label: 'Q1', val: '1.5' }, { label: 'Q2', val: '0.06' }, { label: 'QB/VDC', val: '0.1' }, { label: 'QW', val: '0.1' }]] },
-      { id: 'hg2', name: 'HOURGLASS (sph)', type: 'item', color: '#000000', rows: [[{ label: 'HGID', val: '1' }, { label: 'IHQ', val: '0' }, { label: 'QM', val: '1.0' }, { label: 'IBQ', val: '0' }, { label: 'Q1', val: '1.0' }, { label: 'Q2', val: '1.0' }, { label: 'QB/VDC', val: '0.1' }, { label: 'QW', val: '0.1' }]] }
-    ]
-  },
-  {
-    id: 'initial', name: '*INITIAL', type: 'group', color: '#000000',
-    children: [
-      { id: 'ini1', name: 'INITIAL_VELOCITY_GENERATION', type: 'item', color: '#000000', rows: [[{ label: 'ID', val: '2' }, { label: 'STYP', val: '2' }, { label: 'OMEGA', val: '0.0' }, { label: 'VX', val: '0.0' }, { label: 'VY', val: '0.0' }, { label: 'VZ', val: '-6620.0' }, { label: 'IVATN', val: '0' }, { label: 'ICID', val: '0' }], [{ label: 'XC', val: '0.0' }, { label: 'YC', val: '0.0' }, { label: 'ZC', val: '0.0' }, { label: 'NX', val: '0.0' }, { label: 'NY', val: '0.0' }, { label: 'NZ', val: '0.0' }, { label: 'PHASE', val: '0' }, { label: 'IRIGID', val: '0' }]] }
-    ]
-  },
-  {
-    id: 'element', name: '*ELEMENT', type: 'group', color: '#000000',
-    children: [
-      { id: 'el1', name: 'ELEMENT_SOLID', type: 'item', color: '#000000', rows: [[{ label: 'EID', val: '' }, { label: 'PID', val: '' }, { label: 'N1', val: '' }, { label: 'N2', val: '' }, { label: 'N3', val: '' }, { label: 'N4', val: '' }, { label: 'N5', val: '' }, { label: 'N6', val: '' }]] }
-    ]
-  }
-];
+    ];
 
 
-        
-const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Deep clone for Copy/Paste functionality
-const cloneNode = (node) => ({
-  ...node,
-  id: generateId(),
-  children: node.children ? node.children.map(cloneNode) : undefined,
-  rows: node.rows ? JSON.parse(JSON.stringify(node.rows)) : undefined
-});
+    const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// ================= DRAGGABLE WINDOW COMPONENT =================
-const DraggableWindow = ({ title, children, onClose, initialPos, zIndex, onFocus, width = 450, height, minHeight = 200, maxHeight = 800 }) => {
-  const [pos, setPos] = useState(initialPos);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    // Deep clone for Copy/Paste functionality
+    const cloneNode = (node) => ({
+      ...node,
+      id: generateId(),
+      children: node.children ? node.children.map(cloneNode) : undefined,
+      rows: node.rows ? JSON.parse(JSON.stringify(node.rows)) : undefined
+    });
 
-  const handlePointerDown = (e) => {
-    setDragOffset({ x: e.clientX - pos.x, y: e.clientY - pos.y });
-    setIsDragging(true);
-    e.target.setPointerCapture(e.pointerId);
-    if (onFocus) onFocus();
-  };
-  const handlePointerMove = (e) => {
-    if (isDragging) setPos({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
-  };
-  const handlePointerUp = (e) => {
-    setIsDragging(false);
-    e.target.releasePointerCapture(e.pointerId);
-  };
+    // ================= DRAGGABLE WINDOW COMPONENT =================
+    const DraggableWindow = ({ title, children, onClose, initialPos, zIndex, onFocus, width = 450, height, minHeight = 200, maxHeight = 800 }) => {
+      const [pos, setPos] = useState(initialPos);
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  return (
-    <div 
-      className= "absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl"
-  style = {{ left: pos.x, top: pos.y, zIndex, width, height, minHeight, maxHeight }
-}
-onMouseDown = { onFocus }
-  >
-  <div 
-        className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-pointer"
-onPointerDown = { handlePointerDown }
-onPointerMove = { handlePointerMove }
-onPointerUp = { handlePointerUp }
-  >
-  <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
-    { title }
-    </span>
-    < div className = "flex gap-1" onPointerDown = { e => e.stopPropagation() } >
-      <button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > _ </button>
-        < button className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > <Square size={ 8 } /></button >
-          { onClose && (
-            <button onClick={ onClose } className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" >
-              <X size={ 12 } />
+      const windowRef = React.useRef(null);
+
+      useEffect(() => {
+        if (windowRef.current) {
+          if (width) windowRef.current.style.width = typeof width === 'number' ? `${width}px` : width;
+          if (height) windowRef.current.style.height = typeof height === 'number' ? `${height}px` : height;
+        }
+      }, []);
+
+      const handlePointerDown = (e) => {
+        setDragOffset({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+        setIsDragging(true);
+        e.target.setPointerCapture(e.pointerId);
+        if (onFocus) onFocus();
+      };
+      const handlePointerMove = (e) => {
+        if (isDragging) {
+          const newX = e.clientX - dragOffset.x;
+          const newY = e.clientY - dragOffset.y;
+          const clampedX = Math.max(0, Math.min(window.innerWidth - 100, newX));
+          const clampedY = Math.max(0, Math.min(window.innerHeight - 50, newY));
+          setPos({ x: clampedX, y: clampedY });
+        }
+      };
+      const handlePointerUp = (e) => {
+        setIsDragging(false);
+        e.target.releasePointerCapture(e.pointerId);
+      };
+
+      return (
+        <div
+          ref={windowRef}
+          className="absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl resize overflow-hidden"
+          style={{ left: pos.x, top: pos.y, zIndex, minWidth: 200, minHeight, maxHeight }}
+          onMouseDown={onFocus}
+        >
+          <div
+            className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-pointer"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
+              {title}
+            </span>
+            < div className="flex gap-1" onPointerDown={e => e.stopPropagation()} >
+              <button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > _ </button>
+              < button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > <Square size={8} /></button >
+              {onClose && (
+                <button onClick={onClose} className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" >
+                  <X size={12} />
                 </button>
-          )}
-</div>
-  </div>
-  < div className = "flex-1 flex flex-col overflow-hidden" >
-    { children }
-    </div>
-    </div>
-  );
-};
+              )}
+            </div>
+          </div>
+          < div className="flex-1 flex flex-col overflow-hidden min-h-0" >
+            {children}
+          </div>
+        </div>
+      );
+    };
 
 
-const KeywordManager = () => {
-  const [activeTab, setActiveTab] = useState('Keyword Tree');
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [filterText, setFilterText] = useState('');
-  const [clipboard, setClipboard] = useState(null);
+    const KeywordManager = () => {
+      const [activeTab, setActiveTab] = useState('Keyword Tree');
+      const [selectedNode, setSelectedNode] = useState(null);
+      const [filterText, setFilterText] = useState('');
+      const [clipboard, setClipboard] = useState(null);
 
-  // Right-click context menu state
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, nodeId: null });
+      // Right-click context menu state
+      const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, nodeId: null });
 
-  // Window Management State
-  const [openForms, setOpenForms] = useState([]); // { id, node, pos: {x,y}, zIndex }
-  const [mainWindowPos, setMainWindowPos] = useState({ x: 20, y: 20 });
-  const [mainWindowZ, setMainWindowZ] = useState(10);
-  const [maxZIndex, setMaxZIndex] = useState(10);
+      // Window Management State
+      const [openForms, setOpenForms] = useState([]); // { id, node, pos: {x,y}, zIndex }
+      const [mainWindowPos, setMainWindowPos] = useState({ x: 20, y: 20 });
+      const [mainWindowZ, setMainWindowZ] = useState(10);
+      const [maxZIndex, setMaxZIndex] = useState(10);
 
-  // LS-DYNA Keyword Structure Data mapped perfectly to the requested input parameters
-  const [treeData, setTreeData] = useState(initialTreeData);
+      // LS-DYNA Keyword Structure Data mapped perfectly to the requested input parameters
+      const [treeData, setTreeData] = useState(initialTreeData);
 
-  const [expandedNodes, setExpandedNodes] = useState({
-    'control': true, 'database': false, 'boundary': false, 'contact': true,
-    'part': true, 'mat': false, 'section': false, 'eos': false, 'hourglass': false, 'initial': false, 'element': false
-  });
+      const [expandedNodes, setExpandedNodes] = useState({
+        'control': true, 'database': false, 'boundary': false, 'contact': true,
+        'part': true, 'mat': false, 'section': false, 'eos': false, 'hourglass': false, 'initial': false, 'element': false
+      });
 
-  // Parameter Notes State
-  const [parameterNotes, setParameterNotes] = useState({});
-  const [selectedParameter, setSelectedParameter] = useState(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [tempNote, setTempNote] = useState('');
+      // Parameter Notes State
+      const [parameterNotes, setParameterNotes] = useState({});
+      const [selectedParameter, setSelectedParameter] = useState(null);
+      const [isEditorOpen, setIsEditorOpen] = useState(false);
+      const [tempNote, setTempNote] = useState('');
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+      const [isSaving, setIsSaving] = useState(false);
+      const [saveMessage, setSaveMessage] = useState('');
 
-  // Fetch data on load
-  useEffect(() => {
-    fetch('http://localhost:8000/api/data')
-      .then(res => {
-        if (!res.ok) throw new Error('No existing db, using default keywords.');
-        return res.json();
-      })
-      .then(data => {
-        if (data.treeData) setTreeData(data.treeData);
-        if (data.parameterNotes) setParameterNotes(data.parameterNotes);
-      })
-      .catch(err => console.log('DB Load Info:', err.message));
-  }, []);
+      // Fetch data on load
+      useEffect(() => {
+        fetch('http://localhost:8000/api/data')
+          .then(res => {
+            if (!res.ok) throw new Error('No existing db, using default keywords.');
+            return res.json();
+          })
+          .then(data => {
+            if (data.treeData) setTreeData(data.treeData);
+            if (data.parameterNotes) setParameterNotes(data.parameterNotes);
+          })
+          .catch(err => console.log('DB Load Info:', err.message));
+      }, []);
 
-  const saveDatabase = () => {
-    setIsSaving(true);
-    setSaveMessage('Saving...');
-    fetch('http://localhost:8000/api/data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ treeData, parameterNotes })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setSaveMessage('Saved Successfully!');
-        setTimeout(() => setSaveMessage(''), 3000);
-      })
-      .catch(err => {
-        setSaveMessage('Error Saving DB');
-        setTimeout(() => setSaveMessage(''), 3000);
-      })
-      .finally(() => setIsSaving(false));
-  };
-
-  // ================= COPY & PASTE (Ctrl+C / Ctrl+V) =================
-  const findNodeById = useCallback((nodes, id) => {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      if (node.children) {
-        const found = findNodeById(node.children, id);
-        if (found) return found;
-      }
-    }
-    return null;
-  }, []);
-
-  const getTotalItemsCount = useCallback((nodes) => {
-    return nodes.reduce((count, node) => {
-      let current = node.type === 'item' ? 1 : 0;
-      let childrenCount = node.children ? getTotalItemsCount(node.children) : 0;
-      return count + current + childrenCount;
-    }, 0);
-  }, []);
-
-  // Name Editing State (Rename)
-  const [renamingNodeId, setRenamingNodeId] = useState(null);
-  const [renameText, setRenameText] = useState('');
-
-  const handleStartRename = useCallback((id) => {
-    const node = findNodeById(treeData, id);
-    if (node) {
-      setRenamingNodeId(id);
-      setRenameText(node.name);
-      setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
-    }
-  }, [treeData, findNodeById]);
-
-  // Drag and Drop State and Handlers
-  const [draggedNodeId, setDraggedNodeId] = useState(null);
-
-  const handleDragStart = useCallback((e, id) => {
-    e.stopPropagation();
-    setDraggedNodeId(id);
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', id); // required for Firefox
-    }
-  }, []);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const handleDrop = useCallback((e, targetId) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!draggedNodeId || draggedNodeId === targetId) return;
-
-    setTreeData(prev => {
-      let draggedNode = null;
-      const removeNode = (nodes) => {
-        let newNodes = [];
-        for (const n of nodes) {
-          if (n.id === draggedNodeId) {
-            draggedNode = n;
-          } else {
-            let newNode = { ...n };
-            if (n.children) {
-              newNode.children = removeNode(n.children);
-            }
-            newNodes.push(newNode);
-          }
-        }
-        return newNodes;
+      const saveDatabase = () => {
+        setIsSaving(true);
+        setSaveMessage('Saving...');
+        fetch('http://localhost:8000/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ treeData, parameterNotes })
+        })
+          .then(res => res.json())
+          .then(data => {
+            setSaveMessage('Saved Successfully!');
+            setTimeout(() => setSaveMessage(''), 3000);
+          })
+          .catch(err => {
+            setSaveMessage('Error Saving DB');
+            setTimeout(() => setSaveMessage(''), 3000);
+          })
+          .finally(() => setIsSaving(false));
       };
 
-      let treeWithoutDragged = removeNode(prev);
-      if (!draggedNode) return prev;
-
-      let inserted = false;
-      const insertNode = (nodes) => {
-        let newNodes = [];
-        for (const n of nodes) {
-          if (n.id === targetId) {
-            inserted = true;
-            if (n.type === 'group') {
-              newNodes.push({ ...n, children: [...(n.children || []), draggedNode] });
-              setExpandedNodes(eState => ({ ...eState, [n.id]: true }));
-            } else {
-              newNodes.push(draggedNode, n);
-            }
-          } else {
-            let newNode = { ...n };
-            if (n.children) {
-              newNode.children = insertNode(n.children);
-            }
-            newNodes.push(newNode);
+      // ================= COPY & PASTE (Ctrl+C / Ctrl+V) =================
+      const findNodeById = useCallback((nodes, id) => {
+        for (const node of nodes) {
+          if (node.id === id) return node;
+          if (node.children) {
+            const found = findNodeById(node.children, id);
+            if (found) return found;
           }
         }
-        return newNodes;
-      };
+        return null;
+      }, []);
 
-      const finalTree = insertNode(treeWithoutDragged);
-      return inserted ? finalTree : prev;
-    });
-    setDraggedNodeId(null);
-  }, [draggedNodeId]);
+      const getTotalItemsCount = useCallback((nodes) => {
+        return nodes.reduce((count, node) => {
+          let current = node.type === 'item' ? 1 : 0;
+          let childrenCount = node.children ? getTotalItemsCount(node.children) : 0;
+          return count + current + childrenCount;
+        }, 0);
+      }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Input alanlarındayken kopyalama yapıştırma çakışmasını engelle
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Name Editing State (Rename)
+      const [renamingNodeId, setRenamingNodeId] = useState(null);
+      const [renameText, setRenameText] = useState('');
 
-      if (e.key === 'F2' && selectedNode) {
-        handleStartRename(selectedNode);
+      const handleStartRename = useCallback((id) => {
+        const node = findNodeById(treeData, id);
+        if (node) {
+          setRenamingNodeId(id);
+          setRenameText(node.name);
+          setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+        }
+      }, [treeData, findNodeById]);
+
+      // Drag and Drop State and Handlers
+      const [draggedNodeId, setDraggedNodeId] = useState(null);
+
+      const handleDragStart = useCallback((e, id) => {
+        e.stopPropagation();
+        setDraggedNodeId(id);
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', id); // required for Firefox
+        }
+      }, []);
+
+      const handleDragOver = useCallback((e) => {
         e.preventDefault();
-      } else if (e.ctrlKey && e.key === 'c' && selectedNode) {
-        const nodeToCopy = findNodeById(treeData, selectedNode);
-        if (nodeToCopy) setClipboard(cloneNode(nodeToCopy));
-      } else if (e.ctrlKey && e.key === 'v' && clipboard) {
-        pasteNode(clipboard);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNode, clipboard, treeData, findNodeById, handleStartRename]);
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      }, []);
 
-  // ================= ADD, DELETE, PASTE LOGIC =================
-  const pasteNode = (copiedNode) => {
-    const newNode = cloneNode(copiedNode);
-    setTreeData(prev => {
-      if (!selectedNode) return [...prev, newNode];
+      const handleDrop = useCallback((e, targetId) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      const insertIntoTree = (nodes) => {
-        let newNodes = [];
-        for (const node of nodes) {
-          if (node.id === selectedNode) {
-            if (node.type === 'group') {
-              newNodes.push({ ...node, children: [...(node.children || []), newNode] });
-              setExpandedNodes(e => ({ ...e, [node.id]: true }));
-            } else {
-              newNodes.push(node, newNode);
-            }
-          } else if (node.children) {
-            newNodes.push({ ...node, children: insertIntoTree(node.children) });
-          } else {
-            newNodes.push(node);
-          }
-        }
-        return newNodes;
-      };
-      return insertIntoTree(prev);
-    });
-  };
+        if (!draggedNodeId || draggedNodeId === targetId) return;
 
-  const handleAddFolder = (targetParentId) => {
-    const newFolder = { id: generateId(), name: 'NEW_FOLDER', type: 'group', color: '#000000', children: [] };
-    setTreeData(prev => {
-      if (!targetParentId) return [...prev, newFolder];
-
-      const insertIntoTree = (nodes) => {
-        let newNodes = [];
-        for (const node of nodes) {
-          if (node.id === targetParentId) {
-            if (node.type === 'group') {
-              newNodes.push({ ...node, children: [...(node.children || []), newFolder] });
-              setExpandedNodes(e => ({ ...e, [node.id]: true }));
-            } else {
-              newNodes.push(node, newFolder);
-            }
-          } else if (node.children) {
-            newNodes.push({ ...node, children: insertIntoTree(node.children) });
-          } else {
-            newNodes.push(node);
-          }
-        }
-        return newNodes;
-      };
-      return insertIntoTree(prev);
-    });
-    setRenamingNodeId(newFolder.id);
-    setRenameText('NEW_FOLDER');
-    setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
-  };
-
-  const handleAddNode = () => {
-    let newName = 'NEW_KEYWORD';
-
-    // Auto-prefix logic based on selected node's context
-    if (selectedNode) {
-      // Find the selected node to determine its parent or its own name
-      const selected = findNodeById(treeData, selectedNode);
-      if (selected) {
-        if (selected.type === 'group') {
-          newName = selected.name.replace(/^\*/, '') + '_';
-        } else {
-          // If it's an item, try to find its parent to get the prefix
-          const findParent = (nodes, id, parent = null) => {
-            for (const node of nodes) {
-              if (node.id === id) return parent;
-              if (node.children) {
-                const p = findParent(node.children, id, node);
-                if (p) return p;
+        setTreeData(prev => {
+          let draggedNode = null;
+          const removeNode = (nodes) => {
+            let newNodes = [];
+            for (const n of nodes) {
+              if (n.id === draggedNodeId) {
+                draggedNode = n;
+              } else {
+                let newNode = { ...n };
+                if (n.children) {
+                  newNode.children = removeNode(n.children);
+                }
+                newNodes.push(newNode);
               }
             }
-            return null;
+            return newNodes;
           };
-          const parent = findParent(treeData, selectedNode);
-          if (parent) {
-            newName = parent.name.replace(/^\*/, '') + '_';
+
+          let treeWithoutDragged = removeNode(prev);
+          if (!draggedNode) return prev;
+
+          let inserted = false;
+          const insertNode = (nodes) => {
+            let newNodes = [];
+            for (const n of nodes) {
+              if (n.id === targetId) {
+                inserted = true;
+                if (n.type === 'group') {
+                  newNodes.push({ ...n, children: [...(n.children || []), draggedNode] });
+                  setExpandedNodes(eState => ({ ...eState, [n.id]: true }));
+                } else {
+                  newNodes.push(draggedNode, n);
+                }
+              } else {
+                let newNode = { ...n };
+                if (n.children) {
+                  newNode.children = insertNode(n.children);
+                }
+                newNodes.push(newNode);
+              }
+            }
+            return newNodes;
+          };
+
+          const finalTree = insertNode(treeWithoutDragged);
+          return inserted ? finalTree : prev;
+        });
+        setDraggedNodeId(null);
+      }, [draggedNodeId]);
+
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          // Input alanlarındayken kopyalama yapıştırma çakışmasını engelle
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+          if (e.key === 'F2' && selectedNode) {
+            handleStartRename(selectedNode);
+            e.preventDefault();
+          } else if (e.ctrlKey && e.key === 'c' && selectedNode) {
+            const nodeToCopy = findNodeById(treeData, selectedNode);
+            if (nodeToCopy) setClipboard(cloneNode(nodeToCopy));
+          } else if (e.ctrlKey && e.key === 'v' && clipboard) {
+            pasteNode(clipboard);
+          }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+      }, [selectedNode, clipboard, treeData, findNodeById, handleStartRename]);
+
+      // ================= ADD, DELETE, PASTE LOGIC =================
+      const pasteNode = (copiedNode) => {
+        const newNode = cloneNode(copiedNode);
+        setTreeData(prev => {
+          if (!selectedNode) return [...prev, newNode];
+
+          const insertIntoTree = (nodes) => {
+            let newNodes = [];
+            for (const node of nodes) {
+              if (node.id === selectedNode) {
+                if (node.type === 'group') {
+                  newNodes.push({ ...node, children: [...(node.children || []), newNode] });
+                  setExpandedNodes(e => ({ ...e, [node.id]: true }));
+                } else {
+                  newNodes.push(node, newNode);
+                }
+              } else if (node.children) {
+                newNodes.push({ ...node, children: insertIntoTree(node.children) });
+              } else {
+                newNodes.push(node);
+              }
+            }
+            return newNodes;
+          };
+          return insertIntoTree(prev);
+        });
+      };
+
+      const handleAddFolder = (targetParentId) => {
+        const newFolder = { id: generateId(), name: 'NEW_FOLDER', type: 'group', color: '#000000', children: [] };
+        setTreeData(prev => {
+          if (!targetParentId) return [...prev, newFolder];
+
+          const insertIntoTree = (nodes) => {
+            let newNodes = [];
+            for (const node of nodes) {
+              if (node.id === targetParentId) {
+                if (node.type === 'group') {
+                  newNodes.push({ ...node, children: [...(node.children || []), newFolder] });
+                  setExpandedNodes(e => ({ ...e, [node.id]: true }));
+                } else {
+                  newNodes.push(node, newFolder);
+                }
+              } else if (node.children) {
+                newNodes.push({ ...node, children: insertIntoTree(node.children) });
+              } else {
+                newNodes.push(node);
+              }
+            }
+            return newNodes;
+          };
+          return insertIntoTree(prev);
+        });
+        setRenamingNodeId(newFolder.id);
+        setRenameText('NEW_FOLDER');
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+      };
+
+      const handleAddNode = () => {
+        let newName = 'NEW_KEYWORD';
+
+        // Auto-prefix logic based on selected node's context
+        if (selectedNode) {
+          // Find the selected node to determine its parent or its own name
+          const selected = findNodeById(treeData, selectedNode);
+          if (selected) {
+            if (selected.type === 'group') {
+              newName = selected.name.replace(/^\*/, '') + '_';
+            } else {
+              // If it's an item, try to find its parent to get the prefix
+              const findParent = (nodes, id, parent = null) => {
+                for (const node of nodes) {
+                  if (node.id === id) return parent;
+                  if (node.children) {
+                    const p = findParent(node.children, id, node);
+                    if (p) return p;
+                  }
+                }
+                return null;
+              };
+              const parent = findParent(treeData, selectedNode);
+              if (parent) {
+                newName = parent.name.replace(/^\*/, '') + '_';
+              }
+            }
           }
         }
-      }
-    }
 
-    const emptyRow = Array(8).fill(null).map(() => ({ label: 'NEW', val: '' }));
-    const newNode = { id: generateId(), name: newName, type: 'item', color: '#000000', rows: [emptyRow] };
-    pasteNode(newNode);
-    setRenamingNodeId(newNode.id);
-    setRenameText(newName);
-  };
+        const emptyRow = Array(8).fill(null).map(() => ({ label: 'NEW', val: '' }));
+        const newNode = { id: generateId(), name: newName, type: 'item', color: '#000000', rows: [emptyRow] };
+        pasteNode(newNode);
+        setRenamingNodeId(newNode.id);
+        setRenameText(newName);
+      };
 
-  const handleDeleteNode = () => {
-    if (!selectedNode) return;
-    const deleteFromTree = (nodes) => {
-      return nodes.filter(n => n.id !== selectedNode).map(n => ({
-        ...n,
-        children: n.children ? deleteFromTree(n.children) : undefined
-      }));
-    };
-    setTreeData(prev => deleteFromTree(prev));
-    setSelectedNode(null);
-  };
+      const handleDeleteNode = () => {
+        if (!selectedNode) return;
+        const deleteFromTree = (nodes) => {
+          return nodes.filter(n => n.id !== selectedNode).map(n => ({
+            ...n,
+            children: n.children ? deleteFromTree(n.children) : undefined
+          }));
+        };
+        setTreeData(prev => deleteFromTree(prev));
+        setSelectedNode(null);
+      };
 
-  const handleRenameSubmit = () => {
-    if (!renamingNodeId) return;
-    const updateName = (nodes) => {
-      return nodes.map(n => {
-        if (n.id === renamingNodeId) return { ...n, name: renameText };
-        if (n.children) return { ...n, children: updateName(n.children) };
-        return n;
-      });
-    };
-    setTreeData(prev => updateName(prev));
-    setRenamingNodeId(null);
-  };
+      const handleRenameSubmit = () => {
+        if (!renamingNodeId) return;
+        const updateName = (nodes) => {
+          return nodes.map(n => {
+            if (n.id === renamingNodeId) return { ...n, name: renameText };
+            if (n.children) return { ...n, children: updateName(n.children) };
+            return n;
+          });
+        };
+        setTreeData(prev => updateName(prev));
+        setRenamingNodeId(null);
+      };
 
-  // ================= RIGHT CLICK COLOR MENU =================
-  const changeNodeColor = (color) => {
-    const updateColor = (nodes) => {
-      return nodes.map(n => {
-        if (n.id === contextMenu.nodeId) return { ...n, color };
-        if (n.children) return { ...n, children: updateColor(n.children) };
-        return n;
-      });
-    };
-    setTreeData(prev => updateColor(prev));
-    setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
-  };
+      // ================= RIGHT CLICK COLOR MENU =================
+      const changeNodeColor = (color) => {
+        const updateColor = (nodes) => {
+          return nodes.map(n => {
+            if (n.id === contextMenu.nodeId) return { ...n, color };
+            if (n.children) return { ...n, children: updateColor(n.children) };
+            return n;
+          });
+        };
+        setTreeData(prev => updateColor(prev));
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+      };
 
-  useEffect(() => {
-    const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false }));
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
-  }, []);
+      useEffect(() => {
+        const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false }));
+        document.addEventListener('click', closeMenu);
+        return () => document.removeEventListener('click', closeMenu);
+      }, []);
 
-  // ================= FILTERING =================
-  const filterNodes = (nodes, text) => {
-    if (!text) return nodes;
-    return nodes.reduce((acc, node) => {
-      const matchesNode = node.name.toLowerCase().includes(text.toLowerCase());
-      const filteredChildren = node.children ? filterNodes(node.children, text) : [];
-      if (matchesNode || filteredChildren.length > 0) {
-        acc.push({ ...node, children: filteredChildren });
-      }
-      return acc;
-    }, []);
-  };
-  const filteredData = useMemo(() => filterNodes(treeData, filterText), [filterText, treeData]);
+      // ================= FILTERING =================
+      const filterNodes = (nodes, text) => {
+        if (!text) return nodes;
+        return nodes.reduce((acc, node) => {
+          const matchesNode = node.name.toLowerCase().includes(text.toLowerCase());
+          const filteredChildren = node.children ? filterNodes(node.children, text) : undefined;
 
-  const toggleNode = (nodeId) => {
-    setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
-  };
+          if (matchesNode || (filteredChildren && filteredChildren.length > 0)) {
+            acc.push({ ...node, children: node.children ? (filteredChildren || []) : undefined });
+          }
+          return acc;
+        }, []);
+      };
+      const filteredData = useMemo(() => filterNodes(treeData, filterText), [filterText, treeData]);
 
-  const handleSelect = (node) => {
-    setSelectedNode(node.id);
-  };
-  const handleDoubleClick = (node) => {
-    if (node.type !== 'group') {
-      const newZ = maxZIndex + 1;
-      setMaxZIndex(newZ);
-      const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-      const offset = (openForms.length * 30) % 300;
-      setOpenForms(prev => [...prev, {
-        id: newId,
-        node,
-        pos: { x: 100 + offset, y: 100 + offset },
-        zIndex: newZ
-      }]);
-    }
-  };
+      const toggleNode = (nodeId) => {
+        setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
+      };
 
-  // ================= RENDER TREE ITEM =================
-  const TreeItem = ({ item, level = 0 }) => {
-    const isExpanded = expandedNodes[item.id];
-    const isSelected = selectedNode === item.id;
-    const isRenaming = renamingNodeId === item.id;
+      const handleSelect = (node) => {
+        setSelectedNode(node.id);
+      };
+      const handleDoubleClick = (node) => {
+        if (node.type !== 'group') {
+          const newZ = maxZIndex + 1;
+          setMaxZIndex(newZ);
+          const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+          const offset = (openForms.length * 30) % 300;
+          setOpenForms(prev => [...prev, {
+            id: newId,
+            node,
+            pos: { x: 100 + offset, y: 100 + offset },
+            zIndex: newZ
+          }]);
+        }
+      };
 
-    const onContextMenu = (e) => {
-      e.preventDefault();
-      setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
-      setSelectedNode(item.id);
-    };
+      // ================= RENDER TREE ITEM =================
+      const TreeItem = ({ item, level = 0 }) => {
+        const isExpanded = expandedNodes[item.id];
+        const isSelected = selectedNode === item.id;
+        const isRenaming = renamingNodeId === item.id;
 
-    return (
-      <div className= "relative font-mono text-sm select-none" onContextMenu = { onContextMenu } >
-        <div 
-          className={ `flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'}` }
-    onClick = {(e) => {
-  if (e.detail === 2) {
-    if (item.type === 'group') toggleNode(item.id);
-    else handleDoubleClick(item);
-  } else {
-    handleSelect(item);
-    if (isRenaming) setRenamingNodeId(null);
-  }
-}}
-style = {{ paddingLeft: `${level * 20}px` }}
-draggable
-onDragStart = {(e) => handleDragStart(e, item.id)}
-onDragOver = { handleDragOver }
-onDrop = {(e) => handleDrop(e, item.id)}
-        >
-  <div className="flex items-center w-full" >
-  {
-    item.children ? (
-      <button 
-        onClick= {(e) => { e.stopPropagation(); toggleNode(item.id); }}
-className = "w-4 h-4 mr-1 flex items-center justify-center border border-gray-500 bg-white shadow-sm"
-  >
-  { isExpanded?<Minus size = { 10 } className = "text-black" /> : <Plus size={ 10 } className = "text-black" />}
-</button>
-            ) : <div className="w-4 h-4 mr-1" > </div>}
+        const onContextMenu = (e) => {
+          e.preventDefault();
+          setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
+          setSelectedNode(item.id);
+        };
 
-<span className="mr-1.5 text-yellow-600" >
-  { item.type === 'group' ? <Folder size={ 14 } fill = "currentColor" className = "text-yellow-500" /> : <FileText size={ 14 } className = "text-gray-500" />}
-</span>
-{
-  isRenaming ? (
-    <input 
-    type= "text" 
-    value = { renameText }
-  autoFocus
-  onChange = {(e) => setRenameText(e.target.value)
-}
-onKeyDown = {(e) => {
-  if (e.key === 'Enter') handleRenameSubmit();
-  if (e.key === 'Escape') setRenamingNodeId(null);
-}}
-onBlur = { handleRenameSubmit }
-className = "border border-blue-500 px-1 outline-none font-mono text-sm shadow-inner w-[200px]"
-onClick = {(e) => e.stopPropagation()}
-  />
-) : (
-  <span 
-    className= {`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
-style = {{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
-  >
-  { item.name }
-  </span>
-)}
-</div>
-  </div>
+        const lastClickTimeRef = React.useRef(0);
 
-{
-  item.children && isExpanded && (
-    <div className="relative" >
-      <div className="absolute border-l border-dotted border-gray-400 h-full" style = {{ left: `${(level * 20) + 7}px`, top: 0 }
-} />
-{ item.children.map((child) => <TreeItem key={ child.id } item = { child } level = { level + 1} />)}
-</div>
-)}
-</div>
-    );
-  };
+        const handleRowPointerDown = (e) => {
+          e.stopPropagation();
 
-// ================= INPUT FORM COMPONENT =================
-const InputFormView = ({ editingNode, onClose }) => {
-  const hasData = editingNode?.rows && editingNode.rows.length > 0;
+          if (e.target.closest('button')) return; // Ignore expand clicks
+          if (e.target.closest('input')) return; // Ignore inputs
 
-  return (
-    <div className= "flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
-    {/* Form Top Bar */ }
-    < div className = "flex justify-between items-start mb-2 shrink-0" >
-      <div className="flex gap-4" >
-        <label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Use * Parameter </label>
-          < label className = "flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Comment </label>
+          if (isRenaming) setRenamingNodeId(null);
+
+          const now = Date.now();
+          const timeSinceLastClick = now - lastClickTimeRef.current;
+          lastClickTimeRef.current = now;
+
+          if (timeSinceLastClick < 450) {
+            // Double click detected!
+            lastClickTimeRef.current = 0; // Reset
+            if (item.type === 'group') {
+              toggleNode(item.id);
+            } else {
+              handleDoubleClick(item);
+            }
+          } else {
+            // Single click
+            handleSelect(item);
+          }
+        };
+
+        return (
+          <div className="relative font-mono text-sm select-none" onContextMenu={onContextMenu} >
+            <div
+              className={`flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'}`}
+              onPointerDown={handleRowPointerDown}
+              style={{ paddingLeft: `${level * 20}px` }}
+              draggable
+              onDragStart={(e) => handleDragStart(e, item.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, item.id)}
+            >
+              <div className="flex items-center w-full" >
+                {
+                  item.type === 'group' ? (
+                    <button
+                      className="w-4 h-4 mr-1 flex items-center justify-center border border-gray-500 bg-white shadow-sm"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        toggleNode(item.id);
+                      }}
+                    >
+                      {isExpanded ? <Minus size={10} className="text-black" /> : <Plus size={10} className="text-black" />}
+                    </button>
+                  ) : <div className="w-4 h-4 mr-1" > </div>}
+
+                <span className="mr-1.5 text-yellow-600" >
+                  {item.type === 'group' ? <Folder size={14} fill="currentColor" className="text-yellow-500" /> : <FileText size={14} className="text-gray-500" />}
+                </span>
+                {
+                  isRenaming ? (
+                    <input
+                      type="text"
+                      value={renameText}
+                      autoFocus
+                      onChange={(e) => setRenameText(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameSubmit();
+                        if (e.key === 'Escape') setRenamingNodeId(null);
+                      }}
+                      onBlur={handleRenameSubmit}
+                      className="border border-blue-500 px-1 outline-none font-mono text-sm shadow-inner w-[200px]"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        handleDragStart(e, item.id);
+                      }}
+                      onDragOver={(e) => {
+                        e.stopPropagation();
+                        handleDragOver(e);
+                      }}
+                      onDrop={(e) => {
+                        e.stopPropagation();
+                        handleDrop(e, item.id);
+                      }}
+                      className={`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
+                      style={{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
+                    >
+                      {item.name}
+                    </span>
+                  )}
+              </div>
             </div>
-            < div className = "flex flex-col items-center" >
-              <span className="text-[10px] text-gray-700" > (Subsys: 1 C: \Users\Desktop\LS - DYNA_File.k)</span>
-                < span className = "font-bold text-sm mt-1" >* { editingNode.name.replace(/^\*/, '') }(1) </span>
-                  </div>
-                  < div className = "flex gap-1 flex-wrap justify-end w-[400px]" >
-                  {
-                    ['CmpBase', 'Compare', 'Clear', 'Accept', 'Delete', 'Default', 'Save2Buf', 'Done', 'Setting'].map(btn => (
-                      <button key= { btn } onClick = {() => btn === 'Done' ? onClose() : null}
-className = "px-2 py-0.5 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white" >
-  { btn }
-  </button>
-            ))}
-</div>
-  </div>
 
-  < hr className = "border-gray-400 mb-2 shrink-0" />
+            {
+              item.children && isExpanded && (
+                <div className="relative" >
+                  <div className="absolute border-l border-dotted border-gray-400 h-full" style={{ left: `${(level * 20) + 7}px`, top: 0 }
+                  } />
+                  {item.children.map((child) => <TreeItem key={child.id} item={child} level={level + 1} />)}
+                </div>
+              )}
+          </div>
+        );
+      };
 
-    {/* Dynamic Form Grid based on selected keyword data */ }
-    < div className = "bg-[#f0f0f0] border border-gray-400 p-2 overflow-y-auto flex-1 relative min-h-0" >
+      // ================= INPUT FORM COMPONENT =================
+      const InputFormView = ({ editingNode, onClose }) => {
+        const hasData = editingNode?.rows && editingNode.rows.length > 0;
 
-    {
-      hasData?(
-            <div className = "grid grid-cols-[20px_repeat(8,_1fr)] gap-x-2 gap-y-3 items-center" >
-        {
-          editingNode.rows.map((row, rowIdx) => (
-            <React.Fragment key= { rowIdx } >
-            <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1" > { rowIdx + 1} </span>
-                  { row.map((field, colIdx) => (
-              <div key= {`${rowIdx}-${colIdx}`} className = "flex flex-col gap-0.5 w-full" >
-              {
-                field.label ? (
-                  <>
-                  <span 
-                      className= "text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate" 
-                      title={ field.label } 
-                      onClick={() => setSelectedParameter(field.label)
-              }
-onDoubleClick = {() => {
-  setSelectedParameter(field.label);
-  setTempNote(parameterNotes[field.label] || '');
-  setIsEditorOpen(true);
-}}
-                    > { field.label } </span>
-  < input type = "text" defaultValue = { field.val } className = "border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]" />
-    </>
-                      ) : (
-  <div className= "h-[20px] w-full" /> /* Empty Spacer Column */
-                      )}
-</div>
+        return (
+          <div className="flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
+            {/* Form Top Bar */}
+            < div className="flex justify-between items-start mb-2 shrink-0" >
+              <div className="flex gap-4" >
+                <label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Use * Parameter </label>
+                < label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Comment </label>
+              </div>
+              < div className="flex flex-col items-center" >
+                <span className="text-[10px] text-gray-700" > (Subsys: 1 C: \Users\Desktop\LS - DYNA_File.k)</span>
+                < span className="font-bold text-sm mt-1" >* {editingNode.name.replace(/^\*/, '')}(1) </span>
+              </div>
+              < div className="flex gap-1 flex-wrap justify-end w-[400px]" >
+                {
+                  ['CmpBase', 'Compare', 'Clear', 'Accept', 'Delete', 'Default', 'Save2Buf', 'Done', 'Setting'].map(btn => (
+                    <button key={btn} onClick={() => btn === 'Done' ? onClose() : null}
+                      className="px-2 py-0.5 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white" >
+                      {btn}
+                    </button>
                   ))}
-
-{/* Inject the "Optional Cards" radio for CONTROL_CONTACT exactly like image after row 2 */ }
-{
-  editingNode.name === 'CONTROL_CONTACT' && rowIdx === 1 && (
-    <div className="col-span-9 ml-8 my-2" >
-      <fieldset className="border border-gray-300 p-2 relative flex gap-4 text-[11px] bg-[#f0f0f0] inline-flex" >
-        <legend className="absolute -top-2 left-2 px-1 bg-[#f0f0f0] text-gray-700" > Active optional cards </legend>
-          < label className = "flex items-center gap-1 cursor-pointer" > <input type="radio" name = "opt" /> None </label>
-            < label className = "flex items-center gap-1 cursor-pointer" > <input type="radio" name = "opt" /> Opt1 </label>
-              < label className = "flex items-center gap-1 cursor-pointer" > <input type="radio" name = "opt" /> Opt12 </label>
-                < label className = "flex items-center gap-1 cursor-pointer" > <input type="radio" name = "opt" /> Opt123 </label>
-                  < label className = "flex items-center gap-1 cursor-pointer font-bold text-blue-800" > <input type="radio" name = "opt" defaultChecked /> Opt1234 </label>
-                    < label className = "flex items-center gap-1 cursor-pointer" > <input type="radio" name = "opt" /> Opt12345 </label>
-                      </fieldset>
-                      </div>
-                  )
-}
-</React.Fragment>
-              ))}
-</div>
-          ) : (
-  <div className= "flex h-full items-center justify-center text-gray-500 italic" > No parameters available for this keyword.</div>
-          )}
-</div>
-
-{/* Bottom Text Area */ }
-<div className="mt-2 h-[120px] border border-gray-400 bg-white shadow-inner p-2 overflow-y-auto font-sans shrink-0 text-[12px] relative group" >
-{
-  selectedParameter?(
-    <>
-  <div 
-        className="absolute top-0 right-0 px-2 py-1 bg-gray-200 border-l border-b border-gray-400 text-[10px] font-bold cursor-pointer hover:bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
-onClick = {() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEditorOpen(true); }}
-      > Edit Note </div>
-  < div className = "font-bold text-[#000080] mb-1 pb-1 border-b border-gray-300" > { selectedParameter } Notes: </div>
-{
-  parameterNotes[selectedParameter] ? (
-    <div className= "prose prose-sm max-w-none" dangerouslySetInnerHTML = {{ __html: parameterNotes[selectedParameter] }
-} />
-      ) : (
-  <div className= "text-gray-500 italic" > No notes created yet.Double - click the parameter or click 'Edit Note' to add one.</div>
-      )}
-</>
-  ) : (
-  <div className= "text-gray-500 italic font-mono" > $# Select a parameter to view or edit its notes...</div>
-  )}
-</div>
-  </div>
-    );
-  };
-
-return (
-  <div className= "h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
-
-  {/* Context Menu for Right Click Color Selection */ }
-{
-  contextMenu.visible && (
-    <div 
-          className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-50 w-32 py-1 flex flex-col"
-  style = {{ top: contextMenu.y, left: contextMenu.x }
-}
-onClick = {(e) => e.stopPropagation()}
-        >
-  <span className="px-3 py-1 text-xs font-bold border-b border-gray-300 text-gray-600" > Actions </span>
-    < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
-onClick = {() => handleStartRename(contextMenu.nodeId)}
-  >
-  <FileText size={ 10 } /> Rename (F2)
-    </button>
-    < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
-onClick = {() => handleAddFolder(contextMenu.nodeId)}
-  >
-  <Folder size={ 10 } /> New Folder
-    </button>
-    < span className = "px-3 py-1 text-xs font-bold border-b border-gray-300 border-t mt-1 text-gray-600" > Renk Seç </span>
-      < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick = {() => changeNodeColor('#000000')}> <Square size={ 10 } fill = "#000000" /> Varsayılan </button>
-        < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick = {() => changeNodeColor('#ff0000')}> <Square size={ 10 } fill = "#ff0000" /> Kırmızı </button>
-          < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick = {() => changeNodeColor('#0000ff')}> <Square size={ 10 } fill = "#0000ff" /> Mavi </button>
-            < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick = {() => changeNodeColor('#008000')}> <Square size={ 10 } fill = "#008000" /> Yeşil </button>
-              < button className = "text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick = {() => changeNodeColor('#800080')}> <Square size={ 10 } fill = "#800080" /> Mor </button>
-                </div>
-      )}
-
-{/* Main Keyword Manager Window */ }
-<DraggableWindow 
-        title={ <><Settings size={ 14 } /> Keyword Manager 98</ >}
-initialPos = { mainWindowPos }
-zIndex = { mainWindowZ }
-onFocus = {() => { setMainWindowZ(maxZIndex + 1); setMaxZIndex(prev => prev + 1); }}
-width = { 450}
-height = { 800}
-  >
-  <div className="flex flex-col h-full bg-[#f0f0f0]" >
-    {/* Menu Bar */ }
-    < div className = "flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
-      <div className="flex" >
-        <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
-          < span className = "px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
-            < span className = "px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > View </span>
-              < span className = "px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
-                </div>
-                < div className = "flex items-center gap-2 pr-2" >
-                  { saveMessage && <span className="text-xs text-[#000080] font-bold" > { saveMessage } </span>}
-<button 
-                className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
-onClick = { saveDatabase }
-disabled = { isSaving }
-  >
-  { isSaving? '...Saving': 'Save Database' }
-  </button>
-  </div>
-  </div>
-
-{/* Tab Bar */ }
-<div className="flex px-2 pt-2 bg-[#f0f0f0]" >
-{
-  ['Keyword Tree', 'Search Results'].map(tab => (
-    <button key= { tab } onClick = {() => setActiveTab(tab)}
-className = {`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'}`}
-              >
-  { tab }
-  </button>
-            ))}
-</div>
-
-{/* Main Tree Area */ }
-<div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0]" >
-  <div className="flex flex-col gap-1" >
-    <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
-      < div className = "flex items-center gap-2" >
-        <div className="relative flex-1" >
-          <input type="text" className = "w-full border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
-value = { filterText } onChange = {(e) => setFilterText(e.target.value)} placeholder = "Type to filter..." />
-  <Search size={ 14 } className = "absolute right-2 top-1.5 text-gray-400" />
-    </div>
-    </div>
-    </div>
-
-    < div className = "flex-1 border-2 border-gray-600 border-r-white border-b-white bg-white overflow-hidden flex flex-col shadow-inner" >
-      <div className="flex-1 overflow-y-auto p-2 bg-white" style = {{ fontFamily: 'Tahoma, sans-serif' }}>
-        { filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={ item.id } item = { item } />) : <div className="text-gray-400 italic p-2 text-center mt-10"> No keywords found.</div> }
-        </div>
-        </div>
-
-        < div className = "border border-gray-400 p-1 bg-[#e0e0e0] text-gray-600 text-xs flex justify-between" >
-          <span>Total Items: { getTotalItemsCount(filteredData) } </span>
-            <span>(Tip: Double click to edit, Ctrl + C / V to copy) </span>
+              </div>
             </div>
 
-{/* Action Buttons */ }
-<div className="flex justify-between gap-2 pt-1" >
-  <div className="text-xs text-gray-500 self-center" > Right - click for colors </div>
-    < div className = "flex gap-2" >
-    <button onClick= {() => handleAddFolder(selectedNode)} className = "px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Folder </button>
-      < button onClick = { handleAddNode } className = "px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
-        < button onClick = { handleDeleteNode } className = "px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
+            < hr className="border-gray-400 mb-2 shrink-0" />
+
+            {/* Dynamic Form Grid based on selected keyword data */}
+            < div className="bg-[#f0f0f0] border border-gray-400 p-2 overflow-y-auto flex-1 relative min-h-0" >
+
+              {
+                hasData ? (
+                  <div className="grid grid-cols-[20px_repeat(8,_1fr)] gap-x-2 gap-y-3 items-center" >
+                    {
+                      editingNode.rows.map((row, rowIdx) => (
+                        <React.Fragment key={rowIdx} >
+                          <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1" > {rowIdx + 1} </span>
+                          {row.map((field, colIdx) => (
+                            <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full" >
+                              {
+                                field.label ? (
+                                  <>
+                                    <span
+                                      className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate"
+                                      title={field.label}
+                                      onClick={() => setSelectedParameter(field.label)
+                                      }
+                                      onDoubleClick={() => {
+                                        setSelectedParameter(field.label);
+                                        setTempNote(parameterNotes[field.label] || '');
+                                        setIsEditorOpen(true);
+                                      }}
+                                    > {field.label} </span>
+                                    < input type="text" defaultValue={field.val} className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]" />
+                                  </>
+                                ) : (
+                                  <div className="h-[20px] w-full" /> /* Empty Spacer Column */
+                                )}
+                            </div>
+                          ))}
+
+                          {/* Inject the "Optional Cards" radio for CONTROL_CONTACT exactly like image after row 2 */}
+                          {
+                            editingNode.name === 'CONTROL_CONTACT' && rowIdx === 1 && (
+                              <div className="col-span-9 ml-8 my-2" >
+                                <fieldset className="border border-gray-300 p-2 relative flex gap-4 text-[11px] bg-[#f0f0f0] inline-flex" >
+                                  <legend className="absolute -top-2 left-2 px-1 bg-[#f0f0f0] text-gray-700" > Active optional cards </legend>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> None </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt1 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt123 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer font-bold text-blue-800" > <input type="radio" name="opt" defaultChecked /> Opt1234 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12345 </label>
+                                </fieldset>
+                              </div>
+                            )
+                          }
+                        </React.Fragment>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-gray-500 italic" > No parameters available for this keyword.</div>
+                )}
+            </div>
+
+            {/* Bottom Text Area */}
+            <div className="mt-2 h-[120px] border border-gray-400 bg-white shadow-inner p-2 overflow-y-auto font-sans shrink-0 text-[12px] relative group" >
+              {
+                selectedParameter ? (
+                  <>
+                    <div
+                      className="absolute top-0 right-0 px-2 py-1 bg-gray-200 border-l border-b border-gray-400 text-[10px] font-bold cursor-pointer hover:bg-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEditorOpen(true); }}
+                    > Edit Note </div>
+                    < div className="font-bold text-[#000080] mb-1 pb-1 border-b border-gray-300" > {selectedParameter} Notes: </div>
+                    {
+                      parameterNotes[selectedParameter] ? (
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: parameterNotes[selectedParameter] }
+                        } />
+                      ) : (
+                        <div className="text-gray-500 italic" > No notes created yet.Double - click the parameter or click 'Edit Note' to add one.</div>
+                      )}
+                  </>
+                ) : (
+                  <div className="text-gray-500 italic font-mono" > $# Select a parameter to view or edit its notes...</div>
+                )}
+            </div>
           </div>
-          </div>
-          </div>
-          </div>
+        );
+      };
+
+      return (
+        <div className="h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
+
+          {/* Context Menu for Right Click Color Selection */}
+          {
+            contextMenu.visible && (
+              <div
+                className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-50 w-32 py-1 flex flex-col"
+                style={{ top: contextMenu.y, left: contextMenu.x }
+                }
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="px-3 py-1 text-xs font-bold border-b border-gray-300 text-gray-600" > Actions </span>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                  onClick={() => handleStartRename(contextMenu.nodeId)}
+                >
+                  <FileText size={10} /> Rename (F2)
+                </button>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                  onClick={() => handleAddFolder(contextMenu.nodeId)}
+                >
+                  <Folder size={10} /> New Folder
+                </button>
+                < span className="px-3 py-1 text-xs font-bold border-b border-gray-300 border-t mt-1 text-gray-600" > Renk Seç </span>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#000000')}> <Square size={10} fill="#000000" /> Varsayılan </button>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#ff0000')}> <Square size={10} fill="#ff0000" /> Kırmızı </button>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#0000ff')}> <Square size={10} fill="#0000ff" /> Mavi </button>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#008000')}> <Square size={10} fill="#008000" /> Yeşil </button>
+                < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#800080')}> <Square size={10} fill="#800080" /> Mor </button>
+              </div>
+            )}
+
+          {/* Main Keyword Manager Window */}
+          <DraggableWindow
+            title={<><Settings size={14} /> Keyword Manager 98</ >}
+            initialPos={mainWindowPos}
+            zIndex={mainWindowZ}
+            onFocus={() => { setMainWindowZ(maxZIndex + 1); setMaxZIndex(prev => prev + 1); }}
+            width={450}
+            height={800}
+          >
+            <div className="flex flex-col h-full bg-[#f0f0f0]" >
+              {/* Menu Bar */}
+              < div className="flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
+                <div className="flex" >
+                  <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
+                  < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
+                  < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > View </span>
+                  < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
+                </div>
+                < div className="flex items-center gap-2 pr-2" >
+                  {saveMessage && <span className="text-xs text-[#000080] font-bold" > {saveMessage} </span>}
+                  <button
+                    className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
+                    onClick={saveDatabase}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? '...Saving' : 'Save Database'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Tab Bar */}
+              <div className="flex px-2 pt-2 bg-[#f0f0f0]" >
+                {
+                  ['Keyword Tree', 'Search Results'].map(tab => (
+                    <button key={tab} onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'}`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+              </div>
+
+              {/* Main Tree Area */}
+              <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0]" >
+                <div className="flex flex-col gap-1" >
+                  <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
+                  < div className="flex items-center gap-2" >
+                    <div className="relative flex-1" >
+                      <input type="text" className="w-full border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
+                        value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder="Type to filter..." />
+                      <Search size={14} className="absolute right-2 top-1.5 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+
+                < div className="flex-1 border-2 border-gray-600 border-r-white border-b-white bg-white overflow-hidden flex flex-col shadow-inner" >
+                  <div className="flex-1 overflow-y-auto p-2 bg-white" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                    {filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={item.id} item={item} />) : <div className="text-gray-400 italic p-2 text-center mt-10"> No keywords found.</div>}
+                  </div>
+                </div>
+
+                < div className="border border-gray-400 p-1 bg-[#e0e0e0] text-gray-600 text-xs flex justify-between" >
+                  <span>Total Items: {getTotalItemsCount(filteredData)} </span>
+                  <span>(Tip: Double click to edit, Ctrl + C / V to copy) </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-between gap-2 pt-1" >
+                  <div className="text-xs text-gray-500 self-center" > Right - click for colors </div>
+                  < div className="flex gap-2" >
+                    <button onClick={() => handleAddFolder(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Folder </button>
+                    < button onClick={handleAddNode} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
+                    < button onClick={handleDeleteNode} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </DraggableWindow>
 
-{/* Open Keyword Forms */ }
-{
-  openForms.map(form => (
-    <DraggableWindow
-          key= { form.id }
-          title = {`*${form.node.name.replace(/^\*/, '')} Input Form`}
-initialPos = { form.pos }
-zIndex = { form.zIndex }
-onFocus = {() => {
-  const newZ = maxZIndex + 1;
-  setMaxZIndex(newZ);
-  setOpenForms(prev => prev.map(f => f.id === form.id ? { ...f, zIndex: newZ } : f));
-}}
-onClose = {() => setOpenForms(prev => prev.filter(f => f.id !== form.id))}
-width = { 1000}
-  >
-  <div className="p-2 flex-1 flex flex-col h-full bg-[#f0f0f0] min-h-0 overflow-auto" >
-    <InputFormView editingNode={ form.node } onClose = {() => setOpenForms(prev => prev.filter(f => f.id !== form.id))} />
-      </div>
-      </DraggableWindow>
-      ))}
-{/* React Quill Editor Modal */ }
-{
-  isEditorOpen && selectedParameter && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" >
-      <div className="bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-xl w-[600px] h-[500px] flex flex-col pt-1" >
-        <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 mx-1 flex justify-between items-center text-white cursor-default select-none" >
-          <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
-            <FileText size={ 14 } /> Editing Note: {selectedParameter}
-              </span>
-              < button className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs" onClick = {() => setIsEditorOpen(false)
-}> <X size={ 12 } /></button >
-  </div>
-  < div className = "p-2 flex-1 flex flex-col bg-white m-2 border border-gray-400 shadow-inner" >
-    <ReactQuill 
-          theme="snow"
-value = { tempNote }
-onChange = { setTempNote }
-className = "h-[360px] mb-10"
-modules = {{
-  toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-    ['link', 'image', 'video'],
-    [{ 'color': [] }, { 'background': [] }],
-    ['clean']
-  ],
-          }}
-        />
-  </div>
-  < div className = "p-2 flex justify-end gap-2 bg-[#f0f0f0] mx-1 border-t border-gray-400" >
-    <button 
-          className="px-4 py-1 bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white"
-onClick = {() => setIsEditorOpen(false)}
-        >
-  Cancel
-  </button>
-  < button
-className = "px-4 py-1 bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white font-bold"
-onClick = {() => {
-  setParameterNotes(prev => ({ ...prev, [selectedParameter]: tempNote }));
-  setIsEditorOpen(false);
-}}
-        >
-  Save Note
-    </button>
-    </div>
-    </div>
-    </div>
-)}
-</div>
-  );
-};
+          {/* Open Keyword Forms */}
+          {
+            openForms.map(form => (
+              <DraggableWindow
+                key={form.id}
+                title={`*${form.node.name.replace(/^\*/, '')} Input Form`}
+                initialPos={form.pos}
+                zIndex={form.zIndex}
+                onFocus={() => {
+                  const newZ = maxZIndex + 1;
+                  setMaxZIndex(newZ);
+                  setOpenForms(prev => prev.map(f => f.id === form.id ? { ...f, zIndex: newZ } : f));
+                }}
+                onClose={() => setOpenForms(prev => prev.filter(f => f.id !== form.id))}
+                width={1000}
+              >
+                <div className="p-2 flex-1 flex flex-col h-full bg-[#f0f0f0] min-h-0 overflow-auto" >
+                  <InputFormView editingNode={form.node} onClose={() => setOpenForms(prev => prev.filter(f => f.id !== form.id))} />
+                </div>
+              </DraggableWindow>
+            ))}
+          {/* React Quill Editor Modal */}
+          {
+            isEditorOpen && selectedParameter && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" >
+                <div className="bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-xl w-[600px] h-[500px] flex flex-col pt-1" >
+                  <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 mx-1 flex justify-between items-center text-white cursor-default select-none" >
+                    <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
+                      <FileText size={14} /> Editing Note: {selectedParameter}
+                    </span>
+                    < button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs" onClick={() => setIsEditorOpen(false)
+                    }> <X size={12} /></button >
+                  </div>
+                  < div className="p-2 flex-1 flex flex-col bg-white m-2 border border-gray-400 shadow-inner" >
+                    <ReactQuill
+                      theme="snow"
+                      value={tempNote}
+                      onChange={setTempNote}
+                      className="h-[360px] mb-10"
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                          [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+                          ['link', 'image', 'video'],
+                          [{ 'color': [] }, { 'background': [] }],
+                          ['clean']
+                        ],
+                      }}
+                    />
+                  </div>
+                  < div className="p-2 flex justify-end gap-2 bg-[#f0f0f0] mx-1 border-t border-gray-400" >
+                    <button
+                      className="px-4 py-1 bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white"
+                      onClick={() => setIsEditorOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    < button
+                      className="px-4 py-1 bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white font-bold"
+                      onClick={() => {
+                        setParameterNotes(prev => ({ ...prev, [selectedParameter]: tempNote }));
+                        setIsEditorOpen(false);
+                      }}
+                    >
+                      Save Note
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+        </div>
+      );
+    };
 
 
 
-        const root = createRoot(document.getElementById('root'));
-        root.render(<KeywordManager />);
-    </script>
+    const root = createRoot(document.getElementById('root'));
+    root.render(<KeywordManager />);
+  </script>
 </body>
+
 </html>
