@@ -36,6 +36,7 @@ html_content = f"""<!DOCTYPE html>
     <title>Keyword Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         body, html {{ margin: 0; padding: 0; height: 100%; }}
         #root {{ height: 100%; }}
@@ -45,7 +46,8 @@ html_content = f"""<!DOCTYPE html>
         "imports": {{
           "react": "https://esm.sh/react@18",
           "react-dom/client": "https://esm.sh/react-dom@18/client",
-          "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+          "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+          "react-quill": "https://esm.sh/react-quill@2.0.0?deps=react@18,react-dom@18"
         }}
       }}
     </script>
@@ -56,6 +58,7 @@ html_content = f"""<!DOCTYPE html>
         import React, {{ useState, useEffect, useMemo, useCallback }} from 'react';
         import {{ createRoot }} from 'react-dom/client';
         import {{ Minus, Plus, Search, FileText, Folder, Settings, X, Square }} from 'lucide-react';
+        import ReactQuill from 'react-quill';
 
         {keywords_code}
 
