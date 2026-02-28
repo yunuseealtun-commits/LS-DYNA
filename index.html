@@ -195,6 +195,60 @@ const cloneNode = (node) => ({
   rows: node.rows ? JSON.parse(JSON.stringify(node.rows)) : undefined
 });
 
+// ================= DRAGGABLE WINDOW COMPONENT =================
+const DraggableWindow = ({ title, children, onClose, initialPos, zIndex, onFocus, width = 450, height, minHeight = 200, maxHeight = 800 }) => {
+  const [pos, setPos] = useState(initialPos);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const handlePointerDown = (e) => {
+    setDragOffset({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+    setIsDragging(true);
+    e.target.setPointerCapture(e.pointerId);
+    if (onFocus) onFocus();
+  };
+  const handlePointerMove = (e) => {
+    if (isDragging) setPos({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+  };
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    e.target.releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <div 
+      className= "absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl"
+  style = {{ left: pos.x, top: pos.y, zIndex, width, height, minHeight, maxHeight }
+}
+onMouseDown = { onFocus }
+  >
+  <div 
+        className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-pointer"
+onPointerDown = { handlePointerDown }
+onPointerMove = { handlePointerMove }
+onPointerUp = { handlePointerUp }
+  >
+  <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
+    { title }
+    </span>
+    < div className = "flex gap-1" onPointerDown = { e => e.stopPropagation() } >
+      <button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > _ </button>
+        < button className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > <Square size={ 8 } /></button >
+          { onClose && (
+            <button onClick={ onClose } className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" >
+              <X size={ 12 } />
+                </button>
+          )}
+</div>
+  </div>
+  < div className = "flex-1 flex flex-col overflow-hidden" >
+    { children }
+    </div>
+    </div>
+  );
+};
+
+
 const KeywordManager = () => {
   const [activeTab, setActiveTab] = useState('Keyword Tree');
   const [selectedNode, setSelectedNode] = useState(null);
@@ -204,8 +258,11 @@ const KeywordManager = () => {
   // Right-click context menu state
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, nodeId: null });
 
-  // Editing state (Opens the parameter form)
-  const [editingNode, setEditingNode] = useState(null);
+  // Window Management State
+  const [openForms, setOpenForms] = useState([]); // { id, node, pos: {x,y}, zIndex }
+  const [mainWindowPos, setMainWindowPos] = useState({ x: 20, y: 20 });
+  const [mainWindowZ, setMainWindowZ] = useState(10);
+  const [maxZIndex, setMaxZIndex] = useState(10);
 
   // LS-DYNA Keyword Structure Data mapped perfectly to the requested input parameters
   const [treeData, setTreeData] = useState(initialTreeData);
@@ -545,7 +602,16 @@ const KeywordManager = () => {
   };
   const handleDoubleClick = (node) => {
     if (node.type !== 'group') {
-      setEditingNode(node);
+      const newZ = maxZIndex + 1;
+      setMaxZIndex(newZ);
+      const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+      const offset = (openForms.length * 30) % 300;
+      setOpenForms(prev => [...prev, {
+        id: newId,
+        node,
+        pos: { x: 100 + offset, y: 100 + offset },
+        zIndex: newZ
+      }]);
     }
   };
 
@@ -565,8 +631,15 @@ const KeywordManager = () => {
       <div className= "relative font-mono text-sm select-none" onContextMenu = { onContextMenu } >
         <div 
           className={ `flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'}` }
-    onClick = {() => { handleSelect(item); if (isRenaming) setRenamingNodeId(null); }}
-onDoubleClick = {() => handleDoubleClick(item)}
+    onClick = {(e) => {
+  if (e.detail === 2) {
+    if (item.type === 'group') toggleNode(item.id);
+    else handleDoubleClick(item);
+  } else {
+    handleSelect(item);
+    if (isRenaming) setRenamingNodeId(null);
+  }
+}}
 style = {{ paddingLeft: `${level * 20}px` }}
 draggable
 onDragStart = {(e) => handleDragStart(e, item.id)}
@@ -627,8 +700,8 @@ style = {{ color: isSelected && item.color === '#000000' ? 'white' : item.color 
   };
 
 // ================= INPUT FORM COMPONENT =================
-const InputFormView = () => {
-  const hasData = editingNode.rows && editingNode.rows.length > 0;
+const InputFormView = ({ editingNode, onClose }) => {
+  const hasData = editingNode?.rows && editingNode.rows.length > 0;
 
   return (
     <div className= "flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
@@ -645,7 +718,7 @@ const InputFormView = () => {
                   < div className = "flex gap-1 flex-wrap justify-end w-[400px]" >
                   {
                     ['CmpBase', 'Compare', 'Clear', 'Accept', 'Delete', 'Default', 'Save2Buf', 'Done', 'Setting'].map(btn => (
-                      <button key= { btn } onClick = {() => btn === 'Done' ? setEditingNode(null) : null}
+                      <button key= { btn } onClick = {() => btn === 'Done' ? onClose() : null}
 className = "px-2 py-0.5 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white" >
   { btn }
   </button>
@@ -740,7 +813,7 @@ onClick = {() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEd
   };
 
 return (
-  <div className= "h-screen bg-teal-800 flex items-center justify-center p-4 font-sans text-[13px] overflow-hidden" >
+  <div className= "h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
 
   {/* Context Menu for Right Click Color Selection */ }
 {
@@ -771,39 +844,18 @@ onClick = {() => handleAddFolder(contextMenu.nodeId)}
                 </div>
       )}
 
-{/* Main Window Frame - Dynamically expands when editing */ }
-<div className={ `transition-all duration-300 bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl flex flex-col h-full max-h-[800px] ${editingNode ? 'w-[1000px]' : 'w-[450px]'}` }>
-
-  {/* Title Bar */ }
-  < div className = "bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-default" >
-    <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
-      <Settings size={ 14 } />
-{ editingNode ? 'Keyword Input Form' : 'Keyword Manager 98' }
-</span>
-  < div className = "flex gap-1" >
-    <button className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" > _ </button>
-      < button className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none" >
-        { editingNode?<Square size = { 8 } /> : 'X'}
-</button>
-  < button
-onClick = {() => setEditingNode(null)}
-className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none"
+{/* Main Keyword Manager Window */ }
+<DraggableWindow 
+        title={ <><Settings size={ 14 } /> Keyword Manager 98</ >}
+initialPos = { mainWindowPos }
+zIndex = { mainWindowZ }
+onFocus = {() => { setMainWindowZ(maxZIndex + 1); setMaxZIndex(prev => prev + 1); }}
+width = { 450}
+height = { 800}
   >
-  <X size={ 12 } />
-    </button>
-    </div>
-    </div>
-
-{/* Dynamic Content Switcher */ }
-{
-  editingNode ? (
-    <div className= "p-2 flex-1 flex overflow-hidden" >
-    <InputFormView />
-    </div>
-        ) : (
-    <>
+  <div className="flex flex-col h-full bg-[#f0f0f0]" >
     {/* Menu Bar */ }
-    < div className = "flex px-1 py-0.5 bg-[#f0f0f0] border-b border-gray-400 text-black mb-1 justify-between items-center" >
+    < div className = "flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
       <div className="flex" >
         <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
           < span className = "px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
@@ -811,10 +863,9 @@ className = "w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b
               < span className = "px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
                 </div>
                 < div className = "flex items-center gap-2 pr-2" >
-                  { saveMessage && <span className="text-xs text-[#000080] font-bold" > { saveMessage } </span>
-}
+                  { saveMessage && <span className="text-xs text-[#000080] font-bold" > { saveMessage } </span>}
 <button 
-          className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
+                className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
 onClick = { saveDatabase }
 disabled = { isSaving }
   >
@@ -828,17 +879,15 @@ disabled = { isSaving }
 {
   ['Keyword Tree', 'Search Results'].map(tab => (
     <button key= { tab } onClick = {() => setActiveTab(tab)}
-className = {`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'
-  }`
-}>
+className = {`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'}`}
+              >
   { tab }
   </button>
-              ))}
+            ))}
 </div>
 
 {/* Main Tree Area */ }
 <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0]" >
-
   <div className="flex flex-col gap-1" >
     <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
       < div className = "flex items-center gap-2" >
@@ -870,11 +919,31 @@ value = { filterText } onChange = {(e) => setFilterText(e.target.value)} placeho
         < button onClick = { handleDeleteNode } className = "px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
           </div>
           </div>
-
           </div>
-          </>
-        )}
-</div>
+          </div>
+          </DraggableWindow>
+
+{/* Open Keyword Forms */ }
+{
+  openForms.map(form => (
+    <DraggableWindow
+          key= { form.id }
+          title = {`*${form.node.name.replace(/^\*/, '')} Input Form`}
+initialPos = { form.pos }
+zIndex = { form.zIndex }
+onFocus = {() => {
+  const newZ = maxZIndex + 1;
+  setMaxZIndex(newZ);
+  setOpenForms(prev => prev.map(f => f.id === form.id ? { ...f, zIndex: newZ } : f));
+}}
+onClose = {() => setOpenForms(prev => prev.filter(f => f.id !== form.id))}
+width = { 1000}
+  >
+  <div className="p-2 flex-1 flex flex-col h-full bg-[#f0f0f0] min-h-0 overflow-auto" >
+    <InputFormView editingNode={ form.node } onClose = {() => setOpenForms(prev => prev.filter(f => f.id !== form.id))} />
+      </div>
+      </DraggableWindow>
+      ))}
 {/* React Quill Editor Modal */ }
 {
   isEditorOpen && selectedParameter && (
