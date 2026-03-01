@@ -42,25 +42,23 @@
       overflow-y: auto;
     }
   </style>
-  <script type="importmap">
-      {
-        "imports": {
-          "react": "https://esm.sh/react@18",
-          "react-dom/client": "https://esm.sh/react-dom@18/client",
-          "lucide-react": "https://esm.sh/lucide-react@0.292.0",
-          "react-quill": "https://esm.sh/react-quill@2.0.0?deps=react@18,react-dom@18"
-        }
-      }
-    </script>
+  <!-- React and ReactDOM UMD -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Lucide Icons UMD -->
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
   <div id="root"></div>
-  <script type="text/babel" data-type="module">
-    import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-    import { createRoot } from 'react-dom/client';
-    import { Minus, Plus, Search, FileText, Folder, Settings, X, Square } from 'lucide-react';
-    import ReactQuill from 'react-quill';
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback, useRef } = React;
+    const { createRoot } = ReactDOM;
+    const { Minus, Plus, Search, FileText, Folder, Settings, X, Square } = lucide;
+
+    // ReactQuill is included via UMD script from quilljs previously
+    // For ReactQuill component from esm.sh, we might need to fallback to the global ReactQuill object
+    const ReactQuill = window.ReactQuill || (() => <div>ReactQuill Editor (Failed to load)</div>);
 
     const initialTreeData = [
       { id: 'kw', name: '*KEYWORD', type: 'item', color: '#000000' },
