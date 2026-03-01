@@ -607,32 +607,6 @@
                   />
                 ) : (
                   <span
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      handleDragStart(e, item.id);
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const y = e.clientY - rect.top;
-                      let position = 'inside';
-                      if (item.type === 'group') {
-                        if (y < rect.height * 0.25) position = 'before';
-                        else if (y > rect.height * 0.75) position = 'after';
-                      } else {
-                        if (y < rect.height / 2) position = 'before';
-                        else position = 'after';
-                      }
-                      setDragOverInfo({ id: item.id, position });
-                      handleDragOver(e);
-                    }}
-                    onDragLeave={() => setDragOverInfo(null)}
-                    onDrop={(e) => {
-                      e.stopPropagation();
-                      handleDrop(e, item.id, dragOverInfo?.position);
-                    }}
                     className={`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
                     style={{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
                   >
@@ -1259,7 +1233,14 @@
             return newNodes;
           };
 
-          const finalTree = insertNode(treeWithoutDragged);
+          let finalTree = treeWithoutDragged;
+          if (targetId === 'root') {
+            inserted = true;
+            finalTree = [...treeWithoutDragged, draggedNode];
+          } else {
+            finalTree = insertNode(treeWithoutDragged);
+          }
+
           if (inserted) commitHistory(prev);
           return inserted ? finalTree : prev;
         });
@@ -1937,8 +1918,18 @@
                     </div>
 
                     < div className="flex-1 border-2 border-gray-600 border-r-white border-b-white bg-white overflow-hidden flex flex-col shadow-inner" >
-                      <div className="flex-1 overflow-y-auto p-2 bg-white" style={{ fontFamily: 'Tahoma, sans-serif' }}>
-                        {filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={item.id} item={item} />) : <div className="text-gray-400 italic p-2 text-center mt-10"> No keywords found.</div>}
+                      <div className="flex-1 overflow-y-auto p-2 bg-white" style={{ fontFamily: 'Tahoma, sans-serif' }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(e) => {
+                          if (e.target === e.currentTarget) {
+                            handleDrop(e, 'root', 'after');
+                          }
+                        }}
+                      >
+                        {filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={item.id} item={item} />) : <div className="text-gray-400 italic p-2 text-center mt-10" onDragOver={e => e.preventDefault()} onDrop={e => handleDrop(e, 'root', 'after')}> Drop here to add to root.</div>}
                       </div>
                     </div>
 
