@@ -326,8 +326,8 @@
                 key={win.id}
                 onClick={() => onWindowClick(win.id)}
                 className={`flex items-center gap-1 px-2 h-full min-w-[120px] max-w-[150px] truncate text-xs ${!win.isMinimized && win.isFocused
-                    ? 'bg-[#d0d0d0] border-2 border-gray-600 border-r-white border-b-white shadow-inner font-bold'
-                    : 'bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 hover:bg-[#d0d0d0]'
+                  ? 'bg-[#d0d0d0] border-2 border-gray-600 border-r-white border-b-white shadow-inner font-bold'
+                  : 'bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 hover:bg-[#d0d0d0]'
                   }`}
               >
                 {win.icon}
@@ -1466,6 +1466,7 @@
                 initialPos={{ x: 100, y: 100 }}
                 width={600}
                 height={400}
+                maxHeight={2000}
               >
                 <div className="w-full h-full flex flex-col bg-white" >
                   <div className="flex-1 overflow-hidden" >
