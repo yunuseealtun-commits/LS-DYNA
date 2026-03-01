@@ -25,6 +25,17 @@
     #root {
       height: 100%;
     }
+
+    .quill {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .ql-container {
+      flex: 1;
+      overflow-y: auto;
+    }
   </style>
   <script type="importmap">
       {
@@ -574,23 +585,6 @@
           </div>
         </div>
       );
-    };
-
-
-    const ctxValue = {
-      treeData, setTreeData, parameterNotes, setParameterNotes,
-      expandedNodes, setExpandedNodes, selectedNode, setSelectedNode,
-      renamingNodeId, setRenamingNodeId, renameText, setRenameText,
-      draggedNodeId, setDraggedNodeId, dragOverInfo, setDragOverInfo,
-      clipboard, setClipboard, contextMenu, setContextMenu,
-      openForms, setOpenForms, maxZIndex, setMaxZIndex,
-      isEditorOpen, setIsEditorOpen, tempNote, setTempNote,
-      paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
-      saveMessage, setSaveMessage,
-      handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
-      toggleNode, handleRenameSubmit, handleOpenForm,
-      handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
-      miniQuillModules, quillModules
     };
 
 
@@ -1315,7 +1309,6 @@
             {/* ReactQuill Editor Overlay */}
             {isEditorOpen && (
               <DraggableWindow
-                id="notes-editor"
                 title={`Editing Notes for: ${selectedParameter}`}
                 zIndex={maxZIndex + 2}
                 onClose={() => {
@@ -1323,10 +1316,12 @@
                   // Save note automatically when closing the window
                   setParameterNotes(prev => ({ ...prev, [selectedParameter]: tempNote }));
                 }}
-                initialPos={{ x: 300, y: 150 }}
+                initialPos={{ x: 100, y: 100 }}
+                width={600}
+                height={400}
               >
-                <div className="w-[800px] h-[550px] flex flex-col bg-white" >
-                  <div className="flex-1 overflow-auto" >
+                <div className="w-full h-full flex flex-col bg-white" >
+                  <div className="flex-1 overflow-hidden" >
                     <ReactQuill
                       theme="snow"
                       value={tempNote}
