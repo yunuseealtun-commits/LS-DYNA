@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Keyword Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <!-- Quill Table UI Module -->
   <script src="https://unpkg.com/quill-table-ui@1.0.5/dist/index.js"></script>
@@ -673,6 +675,7 @@
       const [mainWindowZ, setMainWindowZ] = useState(10);
       const [mainWindowMinimized, setMainWindowMinimized] = useState(false);
       const [mainWindowMaximized, setMainWindowMaximized] = useState(false);
+      const [mainWindowClosed, setMainWindowClosed] = useState(false);
       const [maxZIndex, setMaxZIndex] = useState(10);
 
       // Notes Editor Management
@@ -1245,13 +1248,15 @@
       // Taskbar items generation
       const getTaskbarWindows = () => {
         const windows = [];
-        windows.push({
-          id: 'main',
-          title: 'Keyword Manager 98',
-          icon: <Settings size={12} className="text-blue-800" />,
-          isMinimized: mainWindowMinimized,
-          isFocused: mainWindowZ === maxZIndex
-        });
+        if (!mainWindowClosed) {
+          windows.push({
+            id: 'main',
+            title: 'Keyword Manager 98',
+            icon: <Settings size={12} className="text-blue-800" />,
+            isMinimized: mainWindowMinimized,
+            isFocused: mainWindowZ === maxZIndex
+          });
+        }
 
         openForms.forEach(form => {
           windows.push({
@@ -1322,6 +1327,29 @@
       return (
         <AppContext.Provider value={ctxValue}>
           <div className="h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
+
+            {/* Sticky Notes Background App */}
+            <iframe
+              src="http://localhost:3000"
+              className="absolute inset-0 w-full h-[calc(100%-30px)] z-0 border-none"
+              title="Sticky Notes Background"
+            />
+
+            {/* Desktop Icons Layer */}
+            <div className="absolute inset-0 z-[5] p-4 pointer-events-none flex flex-col gap-4 flex-wrap content-start">
+              <div
+                className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group"
+                onDoubleClick={() => {
+                  setMainWindowClosed(false);
+                  setMainWindowMinimized(false);
+                  setMainWindowZ(maxZIndex + 1);
+                  setMaxZIndex(prev => prev + 1);
+                }}
+              >
+                <Settings size={36} className="text-white drop-shadow-md group-active:text-blue-300" />
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
+              </div>
+            </div>
 
             {paramContextMenu.visible && (
               <div
@@ -1407,89 +1435,91 @@
               )}
 
             {/* Main Keyword Manager Window */}
-            <DraggableWindow
-              id="main"
-              title={<><Settings size={14} /> Keyword Manager 98</ >}
-              initialPos={mainWindowPos}
-              zIndex={mainWindowZ}
-              onFocus={() => { setMainWindowZ(maxZIndex + 1); setMaxZIndex(prev => prev + 1); }}
-              width={450}
-              height={800}
-              isMinimized={mainWindowMinimized}
-              onMinimize={() => setMainWindowMinimized(true)}
-              isMaximized={mainWindowMaximized}
-              onMaximize={() => setMainWindowMaximized(!mainWindowMaximized)}
-            >
-              <div className="flex flex-col h-full bg-[#f0f0f0]" >
-                {/* Menu Bar */}
-                < div className="flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
-                  <div className="flex" >
-                    <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
-                    < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
-                    < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > View </span>
-                    < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
-                  </div>
-                  < div className="flex items-center gap-2 pr-2" >
-                    {saveMessage && <span className="text-xs text-[#000080] font-bold" > {saveMessage} </span>}
-                    <button
-                      className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
-                      onClick={saveDatabase}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? '...Saving' : 'Save Database'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tab Bar */}
-                <div className="flex px-2 pt-2 bg-[#f0f0f0]" >
-                  {
-                    ['Keyword Tree', 'Search Results'].map(tab => (
-                      <button key={tab} onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'}`}
+            {!mainWindowClosed && (
+              <DraggableWindow
+                id="main"
+                title={<><Settings size={14} /> Keyword Manager 98</ >}
+                initialPos={mainWindowPos}
+                zIndex={mainWindowZ}
+                onFocus={() => { setMainWindowZ(maxZIndex + 1); setMaxZIndex(prev => prev + 1); }}
+                onClose={() => setMainWindowClosed(true)}
+                width={450}
+                height={800}
+                isMinimized={mainWindowMinimized}
+                onMinimize={() => setMainWindowMinimized(true)}
+                isMaximized={mainWindowMaximized}
+                onMaximize={() => setMainWindowMaximized(!mainWindowMaximized)}
+              >
+                <div className="flex flex-col h-full bg-[#f0f0f0]" >
+                  {/* Menu Bar */}
+                  < div className="flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
+                    <div className="flex" >
+                      <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
+                      < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
+                      < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > View </span>
+                      < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
+                    </div>
+                    < div className="flex items-center gap-2 pr-2" >
+                      {saveMessage && <span className="text-xs text-[#000080] font-bold" > {saveMessage} </span>}
+                      <button
+                        className="px-2 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 text-[10px] py-[1px] active:border-gray-600 active:border-r-white active:border-b-white hover:bg-[#d0d0d0] font-bold shadow-sm"
+                        onClick={saveDatabase}
+                        disabled={isSaving}
                       >
-                        {tab}
+                        {isSaving ? '...Saving' : 'Save Database'}
                       </button>
-                    ))}
-                </div>
+                    </div>
+                  </div>
 
-                {/* Main Tree Area */}
-                <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0] min-h-0" >
-                  <div className="flex flex-col gap-1" >
-                    <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
-                    < div className="flex items-center gap-2" >
-                      <div className="relative flex-1" >
-                        <input type="text" className="w-full border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
-                          value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder="Type to filter..." />
-                        <Search size={14} className="absolute right-2 top-1.5 text-gray-400" />
+                  {/* Tab Bar */}
+                  <div className="flex px-2 pt-2 bg-[#f0f0f0]" >
+                    {
+                      ['Keyword Tree', 'Search Results'].map(tab => (
+                        <button key={tab} onClick={() => setActiveTab(tab)}
+                          className={`px-4 py-1 mr-[2px] border-t border-x border-gray-600 rounded-t-sm text-black ${activeTab === tab ? 'bg-[#f0f0f0] font-bold relative -mb-[2px] z-10 pb-1.5' : 'bg-[#d4d0c8] text-gray-600 hover:bg-[#e0e0e0] mt-1'}`}
+                        >
+                          {tab}
+                        </button>
+                      ))}
+                  </div>
+
+                  {/* Main Tree Area */}
+                  <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0] min-h-0" >
+                    <div className="flex flex-col gap-1" >
+                      <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
+                      < div className="flex items-center gap-2" >
+                        <div className="relative flex-1" >
+                          <input type="text" className="w-full border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
+                            value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder="Type to filter..." />
+                          <Search size={14} className="absolute right-2 top-1.5 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+
+                    < div className="flex-1 border-2 border-gray-600 border-r-white border-b-white bg-white overflow-hidden flex flex-col shadow-inner" >
+                      <div className="flex-1 overflow-y-auto p-2 bg-white" style={{ fontFamily: 'Tahoma, sans-serif' }}>
+                        {filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={item.id} item={item} />) : <div className="text-gray-400 italic p-2 text-center mt-10"> No keywords found.</div>}
+                      </div>
+                    </div>
+
+                    < div className="border border-gray-400 p-1 bg-[#e0e0e0] text-gray-600 text-xs flex justify-between" >
+                      <span>Total Items: {getTotalItemsCount(filteredData)} </span>
+                      <span>(Tip: Double click to edit, Ctrl + C / V to copy) </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-between gap-2 pt-1" >
+                      <div className="text-xs text-gray-500 self-center" > Right - click for colors and actions </div>
+                      < div className="flex gap-2" >
+                        <button onClick={() => handleAddFolder(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Folder </button>
+                        < button onClick={() => handleAddNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
+                        < button onClick={() => handleDeleteNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
                       </div>
                     </div>
                   </div>
-
-                  < div className="flex-1 border-2 border-gray-600 border-r-white border-b-white bg-white overflow-hidden flex flex-col shadow-inner" >
-                    <div className="flex-1 overflow-y-auto p-2 bg-white" style={{ fontFamily: 'Tahoma, sans-serif' }}>
-                      {filteredData.length > 0 ? filteredData.map((item) => <TreeItem key={item.id} item={item} />) : <div className="text-gray-400 italic p-2 text-center mt-10"> No keywords found.</div>}
-                    </div>
-                  </div>
-
-                  < div className="border border-gray-400 p-1 bg-[#e0e0e0] text-gray-600 text-xs flex justify-between" >
-                    <span>Total Items: {getTotalItemsCount(filteredData)} </span>
-                    <span>(Tip: Double click to edit, Ctrl + C / V to copy) </span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-between gap-2 pt-1" >
-                    <div className="text-xs text-gray-500 self-center" > Right - click for colors and actions </div>
-                    < div className="flex gap-2" >
-                      <button onClick={() => handleAddFolder(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Folder </button>
-                      < button onClick={() => handleAddNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
-                      < button onClick={() => handleDeleteNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
-                    </div>
-                  </div>
                 </div>
-              </div>
-            </DraggableWindow>
-
+              </DraggableWindow>
+            )}
             {/* Open Keyword Forms */}
             {
               openForms.map(form => (
