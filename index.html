@@ -316,6 +316,7 @@
           .then(data => {
             if (data.treeData) setTreeData(data.treeData);
             if (data.parameterNotes) setParameterNotes(data.parameterNotes);
+            if (data.expandedNodes) setExpandedNodes(data.expandedNodes);
           })
           .catch(err => console.log('DB Load Info:', err.message));
       }, []);
@@ -326,7 +327,7 @@
         fetch('http://localhost:8000/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ treeData, parameterNotes })
+          body: JSON.stringify({ treeData, parameterNotes, expandedNodes })
         })
           .then(res => res.json())
           .then(data => {
@@ -633,7 +634,10 @@
       const filteredData = useMemo(() => filterNodes(treeData, filterText), [filterText, treeData]);
 
       const toggleNode = (nodeId) => {
-        setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
+        setExpandedNodes(prev => {
+          const newState = { ...prev, [nodeId]: !prev[nodeId] };
+          return newState;
+        });
       };
 
       const handleSelect = (node) => {
@@ -674,14 +678,8 @@
 
           if (isRenaming) setRenamingNodeId(null);
 
-          // Single click behavior
-          if (item.type === 'group') {
-            toggleNode(item.id);
-            handleSelect(item);
-          } else {
-            handleSelect(item);
-            handleDoubleClick(item);
-          }
+          // Sadece seçme işlemi yap, açma işlemi tıkla değil
+          handleSelect(item);
         };
 
         return (
@@ -840,17 +838,42 @@
                                 field.label ? (
                                   <>
                                     <span
-                                      className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate"
+                                      className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate block hover:bg-blue-100 px-1 rounded transition-colors"
                                       title={field.label}
-                                      onClick={() => setSelectedParameter(field.label)
-                                      }
-                                      onDoubleClick={() => {
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setSelectedParameter(field.label);
+                                      }}
+                                      onDoubleClick={(e) => {
+                                        e.preventDefault();
                                         setSelectedParameter(field.label);
                                         setTempNote(parameterNotes[field.label] || '');
                                         setIsEditorOpen(true);
                                       }}
                                     > {field.label} </span>
-                                    < input type="text" defaultValue={field.val} className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]" />
+                                    < input
+                                      type="text"
+                                      value={field.val}
+                                      onChange={(e) => {
+                                        const newVal = e.target.value;
+                                        setTreeData(prev => {
+                                          const updateFieldVal = (nodes) => {
+                                            return nodes.map(n => {
+                                              if (n.id === editingNode.id) {
+                                                const newRows = [...n.rows];
+                                                newRows[rowIdx] = [...newRows[rowIdx]];
+                                                newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], val: newVal };
+                                                return { ...n, rows: newRows };
+                                              }
+                                              if (n.children) return { ...n, children: updateFieldVal(n.children) };
+                                              return n;
+                                            });
+                                          };
+                                          return updateFieldVal(prev);
+                                        });
+                                      }}
+                                      className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]"
+                                    />
                                   </>
                                 ) : (
                                   <div className="h-[20px] w-full" /> /* Empty Spacer Column */
@@ -921,6 +944,31 @@
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="px-3 py-1 text-xs font-bold border-b border-gray-300 text-gray-600" > Actions </span>
+                {
+                  (contextMenu.nodeId && findNodeById(treeData, contextMenu.nodeId)?.type !== 'group') && (
+                    <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                      onClick={() => {
+                        const node = findNodeById(treeData, contextMenu.nodeId);
+                        if (node) handleDoubleClick(node);
+                        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+                      }}
+                    >
+                      <FileText size={10} /> Open
+                    </button>
+                  )
+                }
+                {
+                  (contextMenu.nodeId && findNodeById(treeData, contextMenu.nodeId)?.type === 'group') && (
+                    <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                      onClick={() => {
+                        toggleNode(contextMenu.nodeId);
+                        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+                      }}
+                    >
+                      <Folder size={10} /> Expand/Collapse
+                    </button>
+                  )
+                }
                 < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                   onClick={() => handleStartRename(contextMenu.nodeId)}
                 >
@@ -983,7 +1031,7 @@
               </div>
 
               {/* Main Tree Area */}
-              <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0]" >
+              <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0] min-h-0" >
                 <div className="flex flex-col gap-1" >
                   <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
                   < div className="flex items-center gap-2" >
