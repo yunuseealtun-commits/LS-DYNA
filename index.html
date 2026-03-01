@@ -667,6 +667,8 @@
 
       const hasData = editingNode?.rows && editingNode.rows.length > 0;
 
+      const [draggedParam, setDraggedParam] = React.useState(null);
+
       return (
         <div className="flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
           {/* Form Top Bar */}
@@ -708,7 +710,44 @@
                           const tags = field.tags || [];
 
                           return (
-                            <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full p-[2px] rounded transition-colors group" style={{ backgroundColor: bgColor }}>
+                            <div key={`${rowIdx}-${colIdx}`}
+                              className={`flex flex-col gap-0.5 w-full p-[2px] rounded transition-colors group ${draggedParam?.rowIdx === rowIdx && draggedParam?.colIdx === colIdx ? 'opacity-50' : ''}`}
+                              style={{ backgroundColor: bgColor }}
+                              draggable={true}
+                              onDragStart={(e) => {
+                                setDraggedParam({ rowIdx, colIdx });
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (!draggedParam) return;
+                                if (draggedParam.rowIdx === rowIdx && draggedParam.colIdx === colIdx) return;
+
+                                setTreeData(prev => {
+                                  const swapNode = (nodes) => {
+                                    return nodes.map(n => {
+                                      if (n.id === editingNode.id) {
+                                        const newRows = JSON.parse(JSON.stringify(n.rows));
+                                        // Swap logic
+                                        const temp = newRows[draggedParam.rowIdx][draggedParam.colIdx];
+                                        newRows[draggedParam.rowIdx][draggedParam.colIdx] = newRows[rowIdx][colIdx];
+                                        newRows[rowIdx][colIdx] = temp;
+                                        return { ...n, rows: newRows };
+                                      }
+                                      if (n.children) return { ...n, children: swapNode(n.children) };
+                                      return n;
+                                    });
+                                  };
+                                  return swapNode(prev);
+                                });
+                                setDraggedParam(null);
+                              }}
+                              onDragEnd={() => setDraggedParam(null)}
+                            >
                               {
                                 field.label ? (
                                   <>
@@ -1692,6 +1731,44 @@
                   }}
                 >
                   <Minus size={10} /> Clear Tags
+                </button>
+
+                <div className="border-t border-gray-300 my-1"></div>
+                <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    setTreeData(prev => {
+                      const insertRow = (nodes) => {
+                        return nodes.map(n => {
+                          if (n.id === paramContextMenu.nodeId) {
+                            const newRows = [...n.rows];
+                            const emptyRow = Array(8).fill(null).map(() => ({ label: 'UNUSED', val: '' }));
+                            newRows.splice(paramContextMenu.rowIdx + 1, 0, emptyRow);
+                            return { ...n, rows: newRows };
+                          }
+                          if (n.children) return { ...n, children: insertRow(n.children) };
+                          return n;
+                        });
+                      };
+                      return insertRow(prev);
+                    });
+                    setParamContextMenu(prev => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Plus size={10} /> Add Row Below
+                </button>
+                <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2 text-red-600 hover:text-red-400"
+                  onClick={() => {
+                    if (window.confirm("Delete this parameter?")) {
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'label', 'UNUSED');
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'val', '');
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'tags', []);
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'bgColor', '');
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'textColor', '');
+                    }
+                    setParamContextMenu(prev => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Minus size={10} /> Delete Parameter
                 </button>
 
               </div>
