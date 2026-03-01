@@ -643,8 +643,17 @@
       const handleSelect = (node) => {
         setSelectedNode(node.id);
       };
-      const handleDoubleClick = (node) => {
+      const handleOpenForm = (node) => {
         if (node.type !== 'group') {
+          // Check if already open
+          if (openForms.some(f => f.node.id === node.id)) {
+            // Bring to front
+            const newZ = maxZIndex + 1;
+            setMaxZIndex(newZ);
+            setOpenForms(prev => prev.map(f => f.node.id === node.id ? { ...f, zIndex: newZ } : f));
+            return;
+          }
+
           const newZ = maxZIndex + 1;
           setMaxZIndex(newZ);
           const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -671,7 +680,6 @@
           setSelectedNode(item.id);
         };
 
-        const lastClickTimeRef = React.useRef(0);
 
         const handleRowPointerDown = (e) => {
           if (e.target.closest('button')) return; // Ignore expand clicks
@@ -951,7 +959,7 @@
                     <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                       onClick={() => {
                         const node = findNodeById(treeData, contextMenu.nodeId);
-                        if (node) handleDoubleClick(node);
+                        if (node) handleOpenForm(node);
                         setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
                       }}
                     >
