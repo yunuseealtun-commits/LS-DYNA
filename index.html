@@ -201,6 +201,7 @@
 
 
 
+    const AppContext = React.createContext();
     const generateId = () => Math.random().toString(36).substr(2, 9);
 
     // Deep clone for Copy/Paste functionality
@@ -278,6 +279,27 @@
         </div>
       );
     };
+
+
+    // ================= RENDER TREE ITEM =================
+    const TreeItem = ({ item, level = 0 }) => {
+        const {
+            expandedNodes, selectedNode, renamingNodeId, contextMenu, setContextMenu,
+            setSelectedNode, handleSelect, dragOverInfo, setDragOverInfo,
+            handleDragStart, handleDragOver, handleDrop, toggleNode,
+            renameText, setRenameText, handleRenameSubmit, findNodeById
+        } = React.useContext(AppContext);
+
+        const isExpanded = expandedNodes[item.id];
+        const isSelected = selectedNode === item.id;
+        const isRenaming = renamingNodeId === item.id;
+
+        const onContextMenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation(); // Stop propagation so parent folders don't also fire
+          setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
+          setSelectedNode(item.id);
+        };
 
 
     const KeywordManager = () => {
@@ -793,19 +815,7 @@
         }
       };
 
-      // ================= RENDER TREE ITEM =================
-      const TreeItem = ({ item, level = 0 }) => {
-        const isExpanded = expandedNodes[item.id];
-        const isSelected = selectedNode === item.id;
-        const isRenaming = renamingNodeId === item.id;
-
-        const onContextMenu = (e) => {
-          e.preventDefault();
-          e.stopPropagation(); // Stop propagation so parent folders don't also fire
-          setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
-          setSelectedNode(item.id);
-        };
-
+      
 
         const handleRowPointerDown = (e) => {
           if (e.target.closest('button')) return; // Ignore expand clicks
@@ -1072,8 +1082,26 @@
         );
       };
 
+      
+      const ctxValue = {
+        treeData, setTreeData, parameterNotes, setParameterNotes,
+        expandedNodes, setExpandedNodes, selectedNode, setSelectedNode,
+        renamingNodeId, setRenamingNodeId, renameText, setRenameText,
+        draggedNodeId, setDraggedNodeId, dragOverInfo, setDragOverInfo,
+        clipboard, setClipboard, contextMenu, setContextMenu,
+        openForms, setOpenForms, maxZIndex, setMaxZIndex,
+        isEditorOpen, setIsEditorOpen, tempNote, setTempNote,
+        paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
+        saveMessage, setSaveMessage,
+        handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
+        toggleNode, handleRenameSubmit, handleOpenForm,
+        handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
+        miniQuillModules, quillModules
+      };
+
       return (
-        <div className="h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
+        <AppContext.Provider value={ctxValue}>
+          <div className="h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
 
           {paramContextMenu.visible && (
             <div
@@ -1304,10 +1332,9 @@
             </DraggableWindow>
           )}
         </div>
+        </AppContext.Provider>
       );
     };
-
-
 
     const root = createRoot(document.getElementById('root'));
     root.render(<KeywordManager />);
