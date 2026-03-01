@@ -46,7 +46,7 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- Lucide Icons UMD -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
 </head>
 
 <body>
@@ -54,7 +54,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useCallback, useRef } = React;
     const { createRoot } = ReactDOM;
-    const { Minus, Plus, Search, FileText, Folder, Settings, X, Square } = lucide;
+    const { Minus, Plus, Search, FileText, Folder, Settings, X, Square } = lucideReact;
 
     // ReactQuill is included via UMD script from quilljs previously
     // For ReactQuill component from esm.sh, we might need to fallback to the global ReactQuill object
