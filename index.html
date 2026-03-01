@@ -281,6 +281,7 @@
     };
 
 
+
     // ================= RENDER TREE ITEM =================
     const TreeItem = ({ item, level = 0 }) => {
         const {
@@ -296,10 +297,301 @@
 
         const onContextMenu = (e) => {
           e.preventDefault();
-          e.stopPropagation(); // Stop propagation so parent folders don't also fire
+          e.stopPropagation();
           setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
           setSelectedNode(item.id);
         };
+
+      
+
+        const handleRowPointerDown = (e) => {
+          if (e.target.closest('button')) return; // Ignore expand clicks
+          if (e.target.closest('input')) return; // Ignore inputs
+
+          if (isRenaming) setRenamingNodeId(null);
+
+          // Sadece seçme işlemi yap, açma işlemi tıkla değil
+          handleSelect(item);
+        };
+
+        return (
+          <div className="relative font-mono text-sm select-none" onContextMenu={onContextMenu} >
+            {dragOverInfo?.id === item.id && dragOverInfo.position === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
+            {dragOverInfo?.id === item.id && dragOverInfo.position === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
+            <div
+              className={`flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'} ${dragOverInfo?.id === item.id && dragOverInfo.position === 'inside' ? 'bg-blue-200' : ''}`}
+              onPointerDown={handleRowPointerDown}
+              style={{ paddingLeft: `${level * 20}px` }}
+              draggable
+              onDragStart={(e) => handleDragStart(e, item.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                let position = 'inside';
+                if (item.type === 'group') {
+                  if (y < rect.height * 0.25) position = 'before';
+                  else if (y > rect.height * 0.75) position = 'after';
+                } else {
+                  if (y < rect.height / 2) position = 'before';
+                  else position = 'after';
+                }
+                setDragOverInfo({ id: item.id, position });
+                handleDragOver(e);
+              }}
+              onDragLeave={() => setDragOverInfo(null)}
+              onDrop={(e) => handleDrop(e, item.id, dragOverInfo?.position)}
+            >
+              <div className="flex items-center w-full" >
+                {
+                  item.type === 'group' ? (
+                    <button
+                      className="w-4 h-4 mr-1 flex items-center justify-center border border-gray-500 bg-white shadow-sm"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        toggleNode(item.id);
+                      }}
+                    >
+                      {isExpanded ? <Minus size={10} className="text-black" /> : <Plus size={10} className="text-black" />}
+                    </button>
+                  ) : <div className="w-4 h-4 mr-1" > </div>}
+
+                <span className="mr-1.5 text-yellow-600" >
+                  {item.type === 'group' ? <Folder size={14} fill="currentColor" className="text-yellow-500" /> : <FileText size={14} className="text-gray-500" />}
+                </span>
+                {
+                  isRenaming ? (
+                    <input
+                      type="text"
+                      value={renameText}
+                      autoFocus
+                      onChange={(e) => setRenameText(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameSubmit();
+                        if (e.key === 'Escape') setRenamingNodeId(null);
+                      }}
+                      onBlur={handleRenameSubmit}
+                      className="border border-blue-500 px-1 outline-none font-mono text-sm shadow-inner w-[200px]"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        handleDragStart(e, item.id);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        let position = 'inside';
+                        if (item.type === 'group') {
+                          if (y < rect.height * 0.25) position = 'before';
+                          else if (y > rect.height * 0.75) position = 'after';
+                        } else {
+                          if (y < rect.height / 2) position = 'before';
+                          else position = 'after';
+                        }
+                        setDragOverInfo({ id: item.id, position });
+                        handleDragOver(e);
+                      }}
+                      onDragLeave={() => setDragOverInfo(null)}
+                      onDrop={(e) => {
+                        e.stopPropagation();
+                        handleDrop(e, item.id, dragOverInfo?.position);
+                      }}
+                      className={`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
+                      style={{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
+                    >
+                      {item.name}
+                    </span>
+                  )}
+              </div>
+            </div>
+
+            {
+              item.children && isExpanded && (
+                <div className="relative" >
+                  <div className="absolute border-l border-dotted border-gray-400 h-full" style={{ left: `${(level * 20) + 7}px`, top: 0 }
+                  } />
+                  {item.children.map((child) => <TreeItem key={child.id} item={child} level={level + 1} />)}
+                </div>
+              )}
+          </div>
+        );
+      };
+
+
+      // ================= INPUT FORM COMPONENT =================
+      const InputFormView = ({ editingNode, onClose }) => {
+        const {
+            parameterNotes, setParameterNotes, setIsEditorOpen, setTempNote,
+            paramContextMenu, setParamContextMenu, miniQuillModules, setTreeData,
+            selectedParameter, setSelectedParameter
+        } = React.useContext(AppContext);
+
+        const hasData = editingNode?.rows && editingNode.rows.length > 0;
+
+        return (
+          <div className="flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
+            {/* Form Top Bar */}
+            < div className="flex justify-between items-start mb-2 shrink-0" >
+              <div className="flex gap-4" >
+                <label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Use * Parameter </label>
+                < label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Comment </label>
+              </div>
+              < div className="flex flex-col items-center" >
+                <span className="text-[10px] text-gray-700" > (Subsys: 1 C: \Users\Desktop\LS - DYNA_File.k)</span>
+                < span className="font-bold text-sm mt-1" >* {editingNode.name.replace(/^\*/, '')}(1) </span>
+              </div>
+              < div className="flex gap-1 flex-wrap justify-end w-[400px]" >
+                {
+                  ['CmpBase', 'Compare', 'Clear', 'Accept', 'Delete', 'Default', 'Save2Buf', 'Done', 'Setting'].map(btn => (
+                    <button key={btn} onClick={() => btn === 'Done' ? onClose() : null}
+                      className="px-2 py-0.5 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white" >
+                      {btn}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            < hr className="border-gray-400 mb-2 shrink-0" />
+
+            {/* Dynamic Form Grid based on selected keyword data */}
+            < div className="bg-[#f0f0f0] border border-gray-400 p-2 overflow-y-auto flex-1 relative min-h-0" >
+
+              {
+                hasData ? (
+                  <div className="grid grid-cols-[20px_repeat(8,_1fr)] gap-x-2 gap-y-3 items-center" >
+                    {
+                      editingNode.rows.map((row, rowIdx) => (
+                        <React.Fragment key={rowIdx} >
+                          <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1" > {rowIdx + 1} </span>
+                          {row.map((field, colIdx) => (
+                            <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full" >
+                              {
+                                field.label ? (
+                                  <>
+                                    <span
+                                      className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate block hover:bg-blue-100 px-1 rounded transition-colors"
+                                      title={field.label}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setSelectedParameter(field.label);
+                                      }}
+                                      onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label });
+                                      }}
+                                    > {field.label} </span>
+                                    < input
+                                      type="text"
+                                      value={field.val}
+                                      onChange={(e) => {
+                                        const newVal = e.target.value;
+                                        setTreeData(prev => {
+                                          const updateFieldVal = (nodes) => {
+                                            return nodes.map(n => {
+                                              if (n.id === editingNode.id) {
+                                                const newRows = [...n.rows];
+                                                newRows[rowIdx] = [...newRows[rowIdx]];
+                                                newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], val: newVal };
+                                                return { ...n, rows: newRows };
+                                              }
+                                              if (n.children) return { ...n, children: updateFieldVal(n.children) };
+                                              return n;
+                                            });
+                                          };
+                                          return updateFieldVal(prev);
+                                        });
+                                      }}
+                                      className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]"
+                                    />
+                                  </>
+                                ) : (
+                                  <div className="h-[20px] w-full" /> /* Empty Spacer Column */
+                                )}
+                            </div>
+                          ))}
+
+                          {/* Inject the "Optional Cards" radio for CONTROL_CONTACT exactly like image after row 2 */}
+                          {
+                            editingNode.name === 'CONTROL_CONTACT' && rowIdx === 1 && (
+                              <div className="col-span-9 ml-8 my-2" >
+                                <fieldset className="border border-gray-300 p-2 relative flex gap-4 text-[11px] bg-[#f0f0f0] inline-flex" >
+                                  <legend className="absolute -top-2 left-2 px-1 bg-[#f0f0f0] text-gray-700" > Active optional cards </legend>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> None </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt1 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt123 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer font-bold text-blue-800" > <input type="radio" name="opt" defaultChecked /> Opt1234 </label>
+                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12345 </label>
+                                </fieldset>
+                              </div>
+                            )
+                          }
+                        </React.Fragment>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-gray-500 italic" > No parameters available for this keyword.</div>
+                )}
+            </div>
+
+            {/* Bottom Text Area */}
+            <div className="mt-2 h-[120px] border border-gray-400 bg-white shadow-inner p-2 overflow-y-auto font-sans shrink-0 text-[12px] relative group" >
+              {
+                selectedParameter ? (
+                  <>
+                    <div className="flex justify-between items-center mb-1 pb-1 border-b border-gray-300" >
+                      <div className="font-bold text-[#000080]" > {selectedParameter} Notes: </div>
+                      <button
+                        className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
+                        onClick={() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEditorOpen(true); }}
+                      >
+                        <FileText size={10} /> Tam Ekran Düzenle (Full Editor)
+                      </button>
+                    </div>
+                    <div className="h-[75px] w-full" >
+                      <ReactQuill
+                        theme="snow"
+                        value={parameterNotes[selectedParameter] || ''}
+                        onChange={(val) => setParameterNotes(prev => ({ ...prev, [selectedParameter]: val }))}
+                        className="h-[40px] border-none bg-white"
+                        modules={miniQuillModules}
+                        placeholder={`Enter quick notes for ${selectedParameter}...`}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50" > $# Select a parameter to view or quick-edit its notes...</div>
+                )}
+            </div>
+          </div>
+        );
+      };
+
+      
+      const ctxValue = {
+        treeData, setTreeData, parameterNotes, setParameterNotes,
+        expandedNodes, setExpandedNodes, selectedNode, setSelectedNode,
+        renamingNodeId, setRenamingNodeId, renameText, setRenameText,
+        draggedNodeId, setDraggedNodeId, dragOverInfo, setDragOverInfo,
+        clipboard, setClipboard, contextMenu, setContextMenu,
+        openForms, setOpenForms, maxZIndex, setMaxZIndex,
+        isEditorOpen, setIsEditorOpen, tempNote, setTempNote,
+        paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
+        saveMessage, setSaveMessage,
+        handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
+        toggleNode, handleRenameSubmit, handleOpenForm,
+        handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
+        miniQuillModules, quillModules
+      };
 
 
     const KeywordManager = () => {
@@ -815,289 +1107,7 @@
         }
       };
 
-      
 
-        const handleRowPointerDown = (e) => {
-          if (e.target.closest('button')) return; // Ignore expand clicks
-          if (e.target.closest('input')) return; // Ignore inputs
-
-          if (isRenaming) setRenamingNodeId(null);
-
-          // Sadece seçme işlemi yap, açma işlemi tıkla değil
-          handleSelect(item);
-        };
-
-        return (
-          <div className="relative font-mono text-sm select-none" onContextMenu={onContextMenu} >
-            {dragOverInfo?.id === item.id && dragOverInfo.position === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
-            {dragOverInfo?.id === item.id && dragOverInfo.position === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
-            <div
-              className={`flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'} ${dragOverInfo?.id === item.id && dragOverInfo.position === 'inside' ? 'bg-blue-200' : ''}`}
-              onPointerDown={handleRowPointerDown}
-              style={{ paddingLeft: `${level * 20}px` }}
-              draggable
-              onDragStart={(e) => handleDragStart(e, item.id)}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                let position = 'inside';
-                if (item.type === 'group') {
-                  if (y < rect.height * 0.25) position = 'before';
-                  else if (y > rect.height * 0.75) position = 'after';
-                } else {
-                  if (y < rect.height / 2) position = 'before';
-                  else position = 'after';
-                }
-                setDragOverInfo({ id: item.id, position });
-                handleDragOver(e);
-              }}
-              onDragLeave={() => setDragOverInfo(null)}
-              onDrop={(e) => handleDrop(e, item.id, dragOverInfo?.position)}
-            >
-              <div className="flex items-center w-full" >
-                {
-                  item.type === 'group' ? (
-                    <button
-                      className="w-4 h-4 mr-1 flex items-center justify-center border border-gray-500 bg-white shadow-sm"
-                      onPointerDown={(e) => {
-                        e.stopPropagation();
-                        toggleNode(item.id);
-                      }}
-                    >
-                      {isExpanded ? <Minus size={10} className="text-black" /> : <Plus size={10} className="text-black" />}
-                    </button>
-                  ) : <div className="w-4 h-4 mr-1" > </div>}
-
-                <span className="mr-1.5 text-yellow-600" >
-                  {item.type === 'group' ? <Folder size={14} fill="currentColor" className="text-yellow-500" /> : <FileText size={14} className="text-gray-500" />}
-                </span>
-                {
-                  isRenaming ? (
-                    <input
-                      type="text"
-                      value={renameText}
-                      autoFocus
-                      onChange={(e) => setRenameText(e.target.value)
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRenameSubmit();
-                        if (e.key === 'Escape') setRenamingNodeId(null);
-                      }}
-                      onBlur={handleRenameSubmit}
-                      className="border border-blue-500 px-1 outline-none font-mono text-sm shadow-inner w-[200px]"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span
-                      draggable
-                      onDragStart={(e) => {
-                        e.stopPropagation();
-                        handleDragStart(e, item.id);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const y = e.clientY - rect.top;
-                        let position = 'inside';
-                        if (item.type === 'group') {
-                          if (y < rect.height * 0.25) position = 'before';
-                          else if (y > rect.height * 0.75) position = 'after';
-                        } else {
-                          if (y < rect.height / 2) position = 'before';
-                          else position = 'after';
-                        }
-                        setDragOverInfo({ id: item.id, position });
-                        handleDragOver(e);
-                      }}
-                      onDragLeave={() => setDragOverInfo(null)}
-                      onDrop={(e) => {
-                        e.stopPropagation();
-                        handleDrop(e, item.id, dragOverInfo?.position);
-                      }}
-                      className={`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
-                      style={{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
-                    >
-                      {item.name}
-                    </span>
-                  )}
-              </div>
-            </div>
-
-            {
-              item.children && isExpanded && (
-                <div className="relative" >
-                  <div className="absolute border-l border-dotted border-gray-400 h-full" style={{ left: `${(level * 20) + 7}px`, top: 0 }
-                  } />
-                  {item.children.map((child) => <TreeItem key={child.id} item={child} level={level + 1} />)}
-                </div>
-              )}
-          </div>
-        );
-      };
-
-      // ================= INPUT FORM COMPONENT =================
-      const InputFormView = ({ editingNode, onClose }) => {
-        const hasData = editingNode?.rows && editingNode.rows.length > 0;
-
-        return (
-          <div className="flex-1 bg-[#f0f0f0] flex flex-col h-full font-sans text-xs overflow-hidden" >
-            {/* Form Top Bar */}
-            < div className="flex justify-between items-start mb-2 shrink-0" >
-              <div className="flex gap-4" >
-                <label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Use * Parameter </label>
-                < label className="flex items-center gap-1 cursor-pointer" > <input type="checkbox" /> Comment </label>
-              </div>
-              < div className="flex flex-col items-center" >
-                <span className="text-[10px] text-gray-700" > (Subsys: 1 C: \Users\Desktop\LS - DYNA_File.k)</span>
-                < span className="font-bold text-sm mt-1" >* {editingNode.name.replace(/^\*/, '')}(1) </span>
-              </div>
-              < div className="flex gap-1 flex-wrap justify-end w-[400px]" >
-                {
-                  ['CmpBase', 'Compare', 'Clear', 'Accept', 'Delete', 'Default', 'Save2Buf', 'Done', 'Setting'].map(btn => (
-                    <button key={btn} onClick={() => btn === 'Done' ? onClose() : null}
-                      className="px-2 py-0.5 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white" >
-                      {btn}
-                    </button>
-                  ))}
-              </div>
-            </div>
-
-            < hr className="border-gray-400 mb-2 shrink-0" />
-
-            {/* Dynamic Form Grid based on selected keyword data */}
-            < div className="bg-[#f0f0f0] border border-gray-400 p-2 overflow-y-auto flex-1 relative min-h-0" >
-
-              {
-                hasData ? (
-                  <div className="grid grid-cols-[20px_repeat(8,_1fr)] gap-x-2 gap-y-3 items-center" >
-                    {
-                      editingNode.rows.map((row, rowIdx) => (
-                        <React.Fragment key={rowIdx} >
-                          <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1" > {rowIdx + 1} </span>
-                          {row.map((field, colIdx) => (
-                            <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full" >
-                              {
-                                field.label ? (
-                                  <>
-                                    <span
-                                      className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate block hover:bg-blue-100 px-1 rounded transition-colors"
-                                      title={field.label}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        setSelectedParameter(field.label);
-                                      }}
-                                      onContextMenu={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label });
-                                      }}
-                                    > {field.label} </span>
-                                    < input
-                                      type="text"
-                                      value={field.val}
-                                      onChange={(e) => {
-                                        const newVal = e.target.value;
-                                        setTreeData(prev => {
-                                          const updateFieldVal = (nodes) => {
-                                            return nodes.map(n => {
-                                              if (n.id === editingNode.id) {
-                                                const newRows = [...n.rows];
-                                                newRows[rowIdx] = [...newRows[rowIdx]];
-                                                newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], val: newVal };
-                                                return { ...n, rows: newRows };
-                                              }
-                                              if (n.children) return { ...n, children: updateFieldVal(n.children) };
-                                              return n;
-                                            });
-                                          };
-                                          return updateFieldVal(prev);
-                                        });
-                                      }}
-                                      className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]"
-                                    />
-                                  </>
-                                ) : (
-                                  <div className="h-[20px] w-full" /> /* Empty Spacer Column */
-                                )}
-                            </div>
-                          ))}
-
-                          {/* Inject the "Optional Cards" radio for CONTROL_CONTACT exactly like image after row 2 */}
-                          {
-                            editingNode.name === 'CONTROL_CONTACT' && rowIdx === 1 && (
-                              <div className="col-span-9 ml-8 my-2" >
-                                <fieldset className="border border-gray-300 p-2 relative flex gap-4 text-[11px] bg-[#f0f0f0] inline-flex" >
-                                  <legend className="absolute -top-2 left-2 px-1 bg-[#f0f0f0] text-gray-700" > Active optional cards </legend>
-                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> None </label>
-                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt1 </label>
-                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12 </label>
-                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt123 </label>
-                                  < label className="flex items-center gap-1 cursor-pointer font-bold text-blue-800" > <input type="radio" name="opt" defaultChecked /> Opt1234 </label>
-                                  < label className="flex items-center gap-1 cursor-pointer" > <input type="radio" name="opt" /> Opt12345 </label>
-                                </fieldset>
-                              </div>
-                            )
-                          }
-                        </React.Fragment>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-gray-500 italic" > No parameters available for this keyword.</div>
-                )}
-            </div>
-
-            {/* Bottom Text Area */}
-            <div className="mt-2 h-[120px] border border-gray-400 bg-white shadow-inner p-2 overflow-y-auto font-sans shrink-0 text-[12px] relative group" >
-              {
-                selectedParameter ? (
-                  <>
-                    <div className="flex justify-between items-center mb-1 pb-1 border-b border-gray-300" >
-                      <div className="font-bold text-[#000080]" > {selectedParameter} Notes: </div>
-                      <button
-                        className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
-                        onClick={() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEditorOpen(true); }}
-                      >
-                        <FileText size={10} /> Tam Ekran Düzenle (Full Editor)
-                      </button>
-                    </div>
-                    <div className="h-[75px] w-full" >
-                      <ReactQuill
-                        theme="snow"
-                        value={parameterNotes[selectedParameter] || ''}
-                        onChange={(val) => setParameterNotes(prev => ({ ...prev, [selectedParameter]: val }))}
-                        className="h-[40px] border-none bg-white"
-                        modules={miniQuillModules}
-                        placeholder={`Enter quick notes for ${selectedParameter}...`}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50" > $# Select a parameter to view or quick-edit its notes...</div>
-                )}
-            </div>
-          </div>
-        );
-      };
-
-      
-      const ctxValue = {
-        treeData, setTreeData, parameterNotes, setParameterNotes,
-        expandedNodes, setExpandedNodes, selectedNode, setSelectedNode,
-        renamingNodeId, setRenamingNodeId, renameText, setRenameText,
-        draggedNodeId, setDraggedNodeId, dragOverInfo, setDragOverInfo,
-        clipboard, setClipboard, contextMenu, setContextMenu,
-        openForms, setOpenForms, maxZIndex, setMaxZIndex,
-        isEditorOpen, setIsEditorOpen, tempNote, setTempNote,
-        paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
-        saveMessage, setSaveMessage,
-        handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
-        toggleNode, handleRenameSubmit, handleOpenForm,
-        handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
-        miniQuillModules, quillModules
-      };
 
       return (
         <AppContext.Provider value={ctxValue}>
