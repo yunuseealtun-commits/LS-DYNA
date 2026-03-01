@@ -271,8 +271,15 @@
 
       if (isMinimized) return null;
 
+      const [maxDims, setMaxDims] = useState({ w: window.innerWidth, h: window.innerHeight - 30 });
+      useEffect(() => {
+        const handleResize = () => setMaxDims({ w: window.innerWidth, h: window.innerHeight - 30 });
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
       const windowStyle = isMaximized
-        ? { left: 0, top: 0, width: '100%', height: 'calc(100% - 30px)', zIndex, minWidth: 200 }
+        ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 200 }
         : { left: pos.x, top: pos.y, zIndex, minWidth: 200, minHeight, maxHeight };
 
       return (
