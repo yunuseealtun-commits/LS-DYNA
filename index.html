@@ -6,9 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Keyword Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <!-- Quill Table UI Module -->
+  <script src="https://unpkg.com/quill-table-ui@1.0.5/dist/index.js"></script>
+  <link href="https://unpkg.com/quill-table-ui@1.0.5/dist/index.css" rel="stylesheet">
   <style>
     body,
     html {
@@ -623,7 +624,14 @@
                     <div className="font-bold text-[#000080]" > {selectedParameter} Notes: </div>
                     <button
                       className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
-                      onClick={() => { setTempNote(parameterNotes[selectedParameter] || ''); setIsEditorOpen(true); }}
+                      onClick={() => {
+                        setTempNote(parameterNotes[selectedParameter] || '');
+                        if (React.useContext(AppContext).handleOpenNotesEditor) {
+                          React.useContext(AppContext).handleOpenNotesEditor(selectedParameter);
+                        } else {
+                          setIsEditorOpen(true);
+                        }
+                      }}
                     >
                       <FileText size={10} /> Tam Ekran Düzenle (Full Editor)
                     </button>
@@ -688,6 +696,43 @@
       const [isEditorOpen, setIsEditorOpen] = useState(false);
       const [tempNote, setTempNote] = useState('');
       const [paramContextMenu, setParamContextMenu] = useState({ visible: false, x: 0, y: 0, paramName: null });
+
+      const handleOpenNotesEditor = useCallback((paramName) => {
+        setSelectedParameter(paramName);
+        setTempNote(parameterNotes[paramName] || '');
+        setIsEditorOpen(true);
+        const newZ = maxZIndex + 1;
+        setMaxZIndex(newZ);
+        setNotesEditorWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
+      }, [maxZIndex, parameterNotes]);
+
+      // Undo/Redo History for structural tree changes
+      const undoStack = useRef([]);
+      const redoStack = useRef([]);
+
+      const commitHistory = useCallback((stateToCommit) => {
+        undoStack.current.push(JSON.parse(JSON.stringify(stateToCommit)));
+        if (undoStack.current.length > 50) undoStack.current.shift();
+        redoStack.current = [];
+      }, []);
+
+      const handleUndo = useCallback(() => {
+        if (undoStack.current.length > 0) {
+          setTreeData(prev => {
+            redoStack.current.push(JSON.parse(JSON.stringify(prev)));
+            return undoStack.current.pop();
+          });
+        }
+      }, []);
+
+      const handleRedo = useCallback(() => {
+        if (redoStack.current.length > 0) {
+          setTreeData(prev => {
+            undoStack.current.push(JSON.parse(JSON.stringify(prev)));
+            return redoStack.current.pop();
+          });
+        }
+      }, []);
 
       const [isSaving, setIsSaving] = useState(false);
       const [saveMessage, setSaveMessage] = useState('');
@@ -880,6 +925,7 @@
           };
 
           const finalTree = insertNode(treeWithoutDragged);
+          if (inserted) commitHistory(prev);
           return inserted ? finalTree : prev;
         });
         setDraggedNodeId(null);
@@ -887,6 +933,14 @@
       }, [draggedNodeId]);
 
       // Quill Editor Configuration
+      useEffect(() => {
+        if (typeof window !== 'undefined' && window.Quill && window.quillTableUI) {
+          try {
+            window.Quill.register({ 'modules/tableUI': window.quillTableUI.default }, true);
+          } catch (e) { console.error("TableUI failed to load", e); }
+        }
+      }, []);
+
       // Expanded Quill modules config
       const quillModules = useMemo(() => ({
         toolbar: [
@@ -898,22 +952,29 @@
           [{ 'script': 'sub' }, { 'script': 'super' }],
           [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
           [{ 'align': [] }],
-          ['link', 'image', 'video', 'formula'],
+          ['table', 'link', 'image', 'video', 'formula'],
           ['clean']
-        ]
-      }), []); // Removed standard table module entirely to avoid crash
+        ],
+        table: true,
+        tableUI: true
+      }), []);
 
       const miniQuillModules = useMemo(() => ({ toolbar: false }), []);
 
       useEffect(() => {
         const handleKeyDown = (e) => {
-          // Input alanlarındayken kopyalama yapıştırma çakışmasını engelle
           if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-          if (e.key === 'F2' && selectedNode) {
+          if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            handleUndo();
+          } else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            handleRedo();
+          } else if (e.key === 'F2' && selectedNode) {
             handleStartRename(selectedNode);
             e.preventDefault();
-          } else if (e.ctrlKey && e.key === 'c' && selectedNode) {
+          } else if (e.ctrlKey && e.key.toLowerCase() === 'c' && selectedNode) {
             const nodeToCopy = findNodeById(treeData, selectedNode);
             if (nodeToCopy) setClipboard(cloneNode(nodeToCopy));
           } else if (e.ctrlKey && e.key === 'v' && clipboard) {
@@ -928,6 +989,7 @@
       const pasteNode = (copiedNode) => {
         const newNode = cloneNode(copiedNode);
         setTreeData(prev => {
+          commitHistory(prev);
           if (!selectedNode) return [...prev, newNode];
 
           const insertIntoTree = (nodes) => {
@@ -955,6 +1017,7 @@
       const handleAddFolder = (targetParentId) => {
         const newFolder = { id: generateId(), name: 'NEW_FOLDER', type: 'group', color: '#000000', children: [] };
         setTreeData(prev => {
+          commitHistory(prev);
           if (!targetParentId) return [...prev, newFolder];
 
           const insertIntoTree = (nodes) => {
@@ -1014,19 +1077,20 @@
         }
 
         const emptyRow = Array(8).fill(null).map(() => ({ label: 'NEW', val: '' }));
-        const newNode = { id: generateId(), name: newName, type: 'item', color: '#000000', rows: [emptyRow] };
+        const newNodeItem = { id: generateId(), name: newName, type: 'item', color: '#000000', rows: initRows };
 
         setTreeData(prev => {
-          if (!idToUse) return [...prev, newNode];
+          commitHistory(prev);
+          if (!idToUse) return [...prev, newNodeItem];
           const insertIntoTree = (nodes) => {
             let newNodes = [];
             for (const node of nodes) {
               if (node.id === idToUse) {
                 if (node.type === 'group') {
-                  newNodes.push({ ...node, children: [...(node.children || []), newNode] });
+                  newNodes.push({ ...node, children: [...(node.children || []), newNodeItem] });
                   setExpandedNodes(e => ({ ...e, [node.id]: true }));
                 } else {
-                  newNodes.push(node, newNode);
+                  newNodes.push(node, newNodeItem);
                 }
               } else if (node.children) {
                 newNodes.push({ ...node, children: insertIntoTree(node.children) });
@@ -1039,10 +1103,10 @@
           return insertIntoTree(prev);
         });
 
-        setRenamingNodeId(newNode.id);
+        setRenamingNodeId(newNodeItem.id);
         setRenameText(newName);
         setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
-        setSelectedNode(newNode.id);
+        setSelectedNode(newNodeItem.id);
       };
 
       const handleDeleteNode = (targetId) => {
@@ -1071,23 +1135,36 @@
             children: n.children ? deleteFromTree(n.children) : undefined
           }));
         };
-        setTreeData(prev => deleteFromTree(prev));
+        setTreeData(prev => {
+          commitHistory(prev);
+          return deleteFromTree(prev);
+        });
         if (selectedNode === idToUse) setSelectedNode(null);
         setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
       };
 
-      const handleRenameSubmit = () => {
-        if (!renamingNodeId) return;
-        const updateName = (nodes) => {
-          return nodes.map(n => {
-            if (n.id === renamingNodeId) return { ...n, name: renameText };
-            if (n.children) return { ...n, children: updateName(n.children) };
-            return n;
+      const handleRenameSubmit = useCallback(() => {
+        if (renamingNodeId && renameText.trim()) {
+          setTreeData(prev => {
+            const renameInTree = (nodes) => {
+              return nodes.map(node => {
+                if (node.id === renamingNodeId) {
+                  if (node.name !== renameText.trim()) commitHistory(prev);
+                  return { ...node, name: renameText.trim() };
+                }
+                if (node.children) return { ...node, children: renameInTree(node.children) };
+                return node;
+              });
+            };
+            return renameInTree(prev);
           });
-        };
-        setTreeData(prev => updateName(prev));
-        setRenamingNodeId(null);
-      };
+          setRenamingNodeId(null);
+          setRenameText('');
+        } else {
+          setRenamingNodeId(null);
+          setRenameText('');
+        }
+      }, [renamingNodeId, renameText, setTreeData, commitHistory]);
 
       // ================= RIGHT CLICK COLOR MENU =================
       const changeNodeColor = (color) => {
@@ -1098,7 +1175,10 @@
             return n;
           });
         };
-        setTreeData(prev => updateColor(prev));
+        setTreeData(prev => {
+          commitHistory(prev);
+          return updateColor(prev);
+        });
         setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
       };
 
@@ -1234,7 +1314,7 @@
         paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
         saveMessage, setSaveMessage, selectedParameter, setSelectedParameter,
         handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
-        toggleNode, handleRenameSubmit, handleOpenForm,
+        toggleNode, handleRenameSubmit, handleOpenForm, handleOpenNotesEditor,
         handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
         miniQuillModules, quillModules
       };
@@ -1253,11 +1333,7 @@
               >
                 <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                   onClick={() => {
-                    setSelectedParameter(paramContextMenu.paramName);
-                    setTempNote(parameterNotes[paramContextMenu.paramName] || '');
-                    setIsEditorOpen(true);
-                    setNotesEditorWindow(prev => ({ ...prev, isMinimized: false, zIndex: maxZIndex + 1 }));
-                    setMaxZIndex(prev => prev + 1);
+                    handleOpenNotesEditor(paramContextMenu.paramName);
                     setParamContextMenu({ visible: false, x: 0, y: 0, paramName: null });
                   }}
                 >
