@@ -321,9 +321,13 @@
           .catch(err => console.log('DB Load Info:', err.message));
       }, []);
 
-      const saveDatabase = () => {
-        setIsSaving(true);
-        setSaveMessage('Saving...');
+      const isInitialDbLoad = React.useRef(true);
+
+      const saveDatabase = useCallback((silent = false) => {
+        if (!silent) {
+          setIsSaving(true);
+          setSaveMessage('Saving...');
+        }
         fetch('http://localhost:8000/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -331,15 +335,33 @@
         })
           .then(res => res.json())
           .then(data => {
-            setSaveMessage('Saved Successfully!');
-            setTimeout(() => setSaveMessage(''), 3000);
+            if (!silent) {
+              setSaveMessage('Saved Successfully!');
+              setTimeout(() => setSaveMessage(''), 3000);
+            }
           })
           .catch(err => {
-            setSaveMessage('Error Saving DB');
-            setTimeout(() => setSaveMessage(''), 3000);
+            if (!silent) {
+              setSaveMessage(`Error Saving: ${err.message}`);
+              setTimeout(() => setSaveMessage(''), 4000);
+            }
           })
-          .finally(() => setIsSaving(false));
-      };
+          .finally(() => {
+            if (!silent) setIsSaving(false);
+          });
+      }, [treeData, parameterNotes, expandedNodes]);
+
+      // Debounced Auto-save
+      useEffect(() => {
+        if (isInitialDbLoad.current) {
+          isInitialDbLoad.current = false;
+          return;
+        }
+        const timer = setTimeout(() => {
+          saveDatabase(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }, [treeData, parameterNotes, expandedNodes, saveDatabase]);
 
       // ================= COPY & PASTE (Ctrl+C / Ctrl+V) =================
       const findNodeById = useCallback((nodes, id) => {
@@ -853,8 +875,9 @@
                                         e.preventDefault();
                                         setSelectedParameter(field.label);
                                       }}
-                                      onDoubleClick={(e) => {
+                                      onContextMenu={(e) => {
                                         e.preventDefault();
+                                        e.stopPropagation();
                                         setSelectedParameter(field.label);
                                         setTempNote(parameterNotes[field.label] || '');
                                         setIsEditorOpen(true);
