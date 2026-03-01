@@ -697,54 +697,114 @@
                   {
                     editingNode.rows.map((row, rowIdx) => (
                       <React.Fragment key={rowIdx} >
-                        <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1" > {rowIdx + 1} </span>
-                        {row.map((field, colIdx) => (
-                          <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full" >
-                            {
-                              field.label ? (
-                                <>
-                                  <span
-                                    className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate block hover:bg-blue-100 px-1 rounded transition-colors"
-                                    title={field.label}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setSelectedParameter(field.label);
-                                    }}
-                                    onContextMenu={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label });
-                                    }}
-                                  > {field.label} </span>
-                                  < input
-                                    type="text"
-                                    value={field.val}
-                                    onChange={(e) => {
-                                      const newVal = e.target.value;
-                                      setTreeData(prev => {
-                                        const updateFieldVal = (nodes) => {
-                                          return nodes.map(n => {
-                                            if (n.id === editingNode.id) {
-                                              const newRows = [...n.rows];
-                                              newRows[rowIdx] = [...newRows[rowIdx]];
-                                              newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], val: newVal };
-                                              return { ...n, rows: newRows };
+                        <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1 shrink-0" > {rowIdx + 1} </span>
+                        {row.map((field, colIdx) => {
+                          const bgColor = field.bgColor || 'transparent';
+                          const textColor = field.textColor || 'inherit';
+                          const tags = field.tags || [];
+
+                          return (
+                            <div key={`${rowIdx}-${colIdx}`} className="flex flex-col gap-0.5 w-full p-[2px] rounded transition-colors group" style={{ backgroundColor: bgColor }}>
+                              {
+                                field.label ? (
+                                  <>
+                                    <div className="flex items-center justify-between overflow-hidden">
+                                      <div className="flex items-center gap-1 overflow-hidden">
+                                        <span
+                                          className="text-blue-700 underline cursor-pointer hover:text-blue-900 text-[10px] truncate hover:bg-black/5 px-1 rounded transition-colors"
+                                          style={{ color: field.textColor ? field.textColor : undefined }}
+                                          title={field.label}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            setSelectedParameter(field.label);
+                                          }}
+                                          onDoubleClick={(e) => {
+                                            e.preventDefault();
+                                            const newName = window.prompt("Rename parameter:", field.label);
+                                            if (newName && newName !== field.label) {
+                                              setTreeData(prev => {
+                                                const updateFieldVal = (nodes) => {
+                                                  return nodes.map(n => {
+                                                    if (n.id === editingNode.id) {
+                                                      const newRows = [...n.rows];
+                                                      newRows[rowIdx] = [...newRows[rowIdx]];
+                                                      newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], label: newName };
+                                                      return { ...n, rows: newRows };
+                                                    }
+                                                    if (n.children) return { ...n, children: updateFieldVal(n.children) };
+                                                    return n;
+                                                  });
+                                                };
+                                                return updateFieldVal(prev);
+                                              });
+                                              if (selectedParameter === field.label) setSelectedParameter(newName);
                                             }
-                                            if (n.children) return { ...n, children: updateFieldVal(n.children) };
-                                            return n;
+                                          }}
+                                          onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label, nodeId: editingNode.id, rowIdx, colIdx });
+                                          }}
+                                        > {field.label} </span>
+                                        {tags.map((t, i) => <span key={i} className="text-[8px] bg-yellow-200 text-yellow-800 px-1 rounded border border-yellow-300 truncate" title={t}>{t}</span>)}
+                                      </div>
+                                    </div>
+                                    < input
+                                      type="text"
+                                      value={field.val}
+                                      placeholder={field.label === 'UNUSED' || field.label === '' ? '' : '...'}
+                                      disabled={field.label === 'UNUSED' || field.label === ''}
+                                      onChange={(e) => {
+                                        const newVal = e.target.value;
+                                        setTreeData(prev => {
+                                          const updateFieldVal = (nodes) => {
+                                            return nodes.map(n => {
+                                              if (n.id === editingNode.id) {
+                                                const newRows = [...n.rows];
+                                                newRows[rowIdx] = [...newRows[rowIdx]];
+                                                newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], val: newVal };
+                                                return { ...n, rows: newRows };
+                                              }
+                                              if (n.children) return { ...n, children: updateFieldVal(n.children) };
+                                              return n;
+                                            });
+                                          };
+                                          return updateFieldVal(prev);
+                                        });
+                                      }}
+                                      className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px] disabled:bg-gray-100 disabled:border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                                    />
+                                  </>
+                                ) : (
+                                  <div className="h-[36px] w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      className="text-[10px] text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 hover:border-blue-400 w-full rounded"
+                                      onClick={() => {
+                                        const newName = window.prompt("Enter new parameter name:");
+                                        if (newName) {
+                                          setTreeData(prev => {
+                                            const updateFieldVal = (nodes) => {
+                                              return nodes.map(n => {
+                                                if (n.id === editingNode.id) {
+                                                  const newRows = [...n.rows];
+                                                  newRows[rowIdx] = [...newRows[rowIdx]];
+                                                  newRows[rowIdx][colIdx] = { label: newName, val: '' };
+                                                  return { ...n, rows: newRows };
+                                                }
+                                                if (n.children) return { ...n, children: updateFieldVal(n.children) };
+                                                return n;
+                                              });
+                                            };
+                                            return updateFieldVal(prev);
                                           });
-                                        };
-                                        return updateFieldVal(prev);
-                                      });
-                                    }}
-                                    className="border border-gray-400 bg-white h-[20px] px-1 text-blue-800 outline-none shadow-inner w-full text-[11px]"
-                                  />
-                                </>
-                              ) : (
-                                <div className="h-[20px] w-full" /> /* Empty Spacer Column */
-                              )}
-                          </div>
-                        ))}
+                                        }
+                                      }}
+                                    >+ Add</button>
+                                  </div>
+                                )}
+                            </div>
+                          );
+                        })}
 
                         {/* Inject the "Optional Cards" radio for CONTROL_CONTACT exactly like image after row 2 */}
                         {
@@ -851,7 +911,7 @@
       const [selectedParameter, setSelectedParameter] = useState(null);
       const [isEditorOpen, setIsEditorOpen] = useState(false);
       const [tempNote, setTempNote] = useState('');
-      const [paramContextMenu, setParamContextMenu] = useState({ visible: false, x: 0, y: 0, paramName: null });
+      const [paramContextMenu, setParamContextMenu] = useState({ visible: false, x: 0, y: 0, paramName: null, nodeId: null, rowIdx: null, colIdx: null });
 
       const handleOpenNotesEditor = useCallback((paramName) => {
         setSelectedParameter(paramName);
@@ -888,6 +948,45 @@
             return redoStack.current.pop();
           });
         }
+      }, []);
+
+      const updateParamProperty = useCallback((nodeId, rowIdx, colIdx, propName, value) => {
+        setTreeData(prev => {
+          const updateNodes = (nodes) => {
+            return nodes.map(n => {
+              if (n.id === nodeId) {
+                const newRows = [...n.rows];
+                newRows[rowIdx] = [...newRows[rowIdx]];
+                newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], [propName]: value };
+                return { ...n, rows: newRows };
+              }
+              if (n.children) return { ...n, children: updateNodes(n.children) };
+              return n;
+            });
+          };
+          return updateNodes(prev);
+        });
+      }, []);
+
+      const updateParamTag = useCallback((nodeId, rowIdx, colIdx, tag) => {
+        setTreeData(prev => {
+          const updateNodes = (nodes) => {
+            return nodes.map(n => {
+              if (n.id === nodeId) {
+                const newRows = [...n.rows];
+                newRows[rowIdx] = [...newRows[rowIdx]];
+                const currentTags = newRows[rowIdx][colIdx].tags || [];
+                if (!currentTags.includes(tag)) {
+                  newRows[rowIdx][colIdx] = { ...newRows[rowIdx][colIdx], tags: [...currentTags, tag] };
+                }
+                return { ...n, rows: newRows };
+              }
+              if (n.children) return { ...n, children: updateNodes(n.children) };
+              return n;
+            });
+          };
+          return updateNodes(prev);
+        });
       }, []);
 
       const [isSaving, setIsSaving] = useState(false);
@@ -1496,20 +1595,84 @@
 
             {paramContextMenu.visible && (
               <div
-                className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-32 py-1 flex flex-col"
+                className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-48 py-1 flex flex-col text-xs"
                 style={{ top: paramContextMenu.y, left: paramContextMenu.x }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
+                <div className="px-2 py-1 font-bold border-b border-gray-300 text-blue-900 mb-1">
+                  {paramContextMenu.paramName}
+                </div>
+
                 <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                   onClick={() => {
                     handleOpenNotesEditor(paramContextMenu.paramName);
-                    setParamContextMenu({ visible: false, x: 0, y: 0, paramName: null });
+                    setParamContextMenu(prev => ({ ...prev, visible: false }));
                   }}
                 >
                   <FileText size={10} /> Open Note
                 </button>
+
+                <div className="border-t border-gray-300 my-1"></div>
+
+                <div className="px-3 py-1 flex flex-col gap-1">
+                  <span className="text-[10px] text-gray-600 font-bold">Background Color</span>
+                  <div className="flex gap-1 flex-wrap">
+                    {['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', 'transparent'].map(c => (
+                      <button key={`bg-${c}`} className="w-5 h-5 rounded border border-gray-400 hover:scale-110 transition-transform cursor-pointer" style={{ backgroundColor: c === 'transparent' ? '#fff' : c }}
+                        title={c}
+                        onClick={() => {
+                          updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'bgColor', c === 'transparent' ? '' : c);
+                          setParamContextMenu(prev => ({ ...prev, visible: false }));
+                        }}
+                      >
+                        {c === 'transparent' && <span className="text-[8px] text-gray-400">X</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="px-3 py-1 flex flex-col gap-1">
+                  <span className="text-[10px] text-gray-600 font-bold">Text Color</span>
+                  <div className="flex gap-1 flex-wrap">
+                    {['#000000', '#ff0000', '#0000ff', '#008000', '#800080', 'inherit'].map(c => (
+                      <button key={`text-${c}`} className="w-5 h-5 rounded border border-gray-400 hover:scale-110 transition-transform cursor-pointer" style={{ backgroundColor: c === 'inherit' ? '#ccc' : c }}
+                        title={c}
+                        onClick={() => {
+                          updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'textColor', c === 'inherit' ? '' : c);
+                          setParamContextMenu(prev => ({ ...prev, visible: false }));
+                        }}
+                      >
+                        {c === 'inherit' && <span className="text-[8px] text-gray-400">A</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-300 my-1"></div>
+                <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                  onClick={() => {
+                    const tag = window.prompt("Enter tag name:");
+                    if (tag) {
+                      updateParamTag(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, tag);
+                    }
+                    setParamContextMenu(prev => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Plus size={10} /> Add Tag
+                </button>
+                <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2 text-red-600 hover:text-red-400"
+                  onClick={() => {
+                    if (window.confirm("Clear all tags?")) {
+                      updateParamProperty(paramContextMenu.nodeId, paramContextMenu.rowIdx, paramContextMenu.colIdx, 'tags', []);
+                    }
+                    setParamContextMenu(prev => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Minus size={10} /> Clear Tags
+                </button>
+
               </div>
             )}
 
