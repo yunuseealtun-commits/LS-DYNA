@@ -666,6 +666,7 @@
 
         const onContextMenu = (e) => {
           e.preventDefault();
+          e.stopPropagation(); // Stop propagation so parent folders don't also fire
           setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
           setSelectedNode(item.id);
         };
@@ -938,10 +939,11 @@
           {
             contextMenu.visible && (
               <div
-                className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-50 w-32 py-1 flex flex-col"
+                className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-32 py-1 flex flex-col"
                 style={{ top: contextMenu.y, left: contextMenu.x }}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
                 <span className="px-3 py-1 text-xs font-bold border-b border-gray-300 text-gray-600" > Actions </span>
                 {
