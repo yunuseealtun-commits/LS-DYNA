@@ -57,7 +57,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel" data-type="module">
-    import React, { useState, useEffect, useMemo, useCallback } from 'react';
+    import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
     import { createRoot } from 'react-dom/client';
     import { Minus, Plus, Search, FileText, Folder, Settings, X, Square } from 'lucide-react';
     import ReactQuill from 'react-quill';
@@ -403,7 +403,7 @@
     const StickyNotesApp = () => {
       const [notes, setNotes] = useState([]);
       const [maxZ, setMaxZ] = useState(1);
-      const isInitialLoad = React.useRef(true);
+      const isInitialLoad = useRef(true);
 
       useEffect(() => {
         const saved = localStorage.getItem('lsdyna_sticky_notes');
