@@ -375,6 +375,7 @@
 
       // Drag and Drop State and Handlers
       const [draggedNodeId, setDraggedNodeId] = useState(null);
+      const [dragOverInfo, setDragOverInfo] = useState(null);
 
       const handleDragStart = useCallback((e, id) => {
         e.stopPropagation();
@@ -390,11 +391,14 @@
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
       }, []);
 
-      const handleDrop = useCallback((e, targetId) => {
+      const handleDrop = useCallback((e, targetId, position = 'inside') => {
         e.preventDefault();
         e.stopPropagation();
 
-        if (!draggedNodeId || draggedNodeId === targetId) return;
+        if (!draggedNodeId || draggedNodeId === targetId) {
+          setDragOverInfo(null);
+          return;
+        }
 
         setTreeData(prev => {
           let draggedNode = null;
@@ -423,11 +427,19 @@
             for (const n of nodes) {
               if (n.id === targetId) {
                 inserted = true;
-                if (n.type === 'group') {
+                if (position === 'inside' && n.type === 'group') {
                   newNodes.push({ ...n, children: [...(n.children || []), draggedNode] });
                   setExpandedNodes(eState => ({ ...eState, [n.id]: true }));
-                } else {
+                } else if (position === 'before') {
                   newNodes.push(draggedNode, n);
+                } else if (position === 'after') {
+                  newNodes.push(n, draggedNode);
+                } else {
+                  if (n.type === 'group') {
+                    newNodes.push({ ...n, children: [...(n.children || []), draggedNode] });
+                  } else {
+                    newNodes.push(n, draggedNode);
+                  }
                 }
               } else {
                 let newNode = { ...n };
@@ -444,6 +456,7 @@
           return inserted ? finalTree : prev;
         });
         setDraggedNodeId(null);
+        setDragOverInfo(null);
       }, [draggedNodeId]);
 
       useEffect(() => {
@@ -600,8 +613,8 @@
 
       useEffect(() => {
         const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false }));
-        document.addEventListener('click', closeMenu);
-        return () => document.removeEventListener('click', closeMenu);
+        document.addEventListener('pointerdown', closeMenu);
+        return () => document.removeEventListener('pointerdown', closeMenu);
       }, []);
 
       // ================= FILTERING =================
@@ -656,41 +669,49 @@
         const lastClickTimeRef = React.useRef(0);
 
         const handleRowPointerDown = (e) => {
-          e.stopPropagation();
-
           if (e.target.closest('button')) return; // Ignore expand clicks
           if (e.target.closest('input')) return; // Ignore inputs
 
           if (isRenaming) setRenamingNodeId(null);
 
-          const now = Date.now();
-          const timeSinceLastClick = now - lastClickTimeRef.current;
-          lastClickTimeRef.current = now;
-
-          if (timeSinceLastClick < 450) {
-            // Double click detected!
-            lastClickTimeRef.current = 0; // Reset
-            if (item.type === 'group') {
-              toggleNode(item.id);
-            } else {
-              handleDoubleClick(item);
-            }
-          } else {
-            // Single click
+          // Single click behavior
+          if (item.type === 'group') {
+            toggleNode(item.id);
             handleSelect(item);
+          } else {
+            handleSelect(item);
+            handleDoubleClick(item);
           }
         };
 
         return (
           <div className="relative font-mono text-sm select-none" onContextMenu={onContextMenu} >
+            {dragOverInfo?.id === item.id && dragOverInfo.position === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
+            {dragOverInfo?.id === item.id && dragOverInfo.position === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
             <div
-              className={`flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'}`}
+              className={`flex items-center hover:bg-blue-50 cursor-pointer py-[2px] ${isSelected ? 'bg-blue-100 border border-dotted border-blue-400' : 'border border-transparent'} ${dragOverInfo?.id === item.id && dragOverInfo.position === 'inside' ? 'bg-blue-200' : ''}`}
               onPointerDown={handleRowPointerDown}
               style={{ paddingLeft: `${level * 20}px` }}
               draggable
               onDragStart={(e) => handleDragStart(e, item.id)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, item.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                let position = 'inside';
+                if (item.type === 'group') {
+                  if (y < rect.height * 0.25) position = 'before';
+                  else if (y > rect.height * 0.75) position = 'after';
+                } else {
+                  if (y < rect.height / 2) position = 'before';
+                  else position = 'after';
+                }
+                setDragOverInfo({ id: item.id, position });
+                handleDragOver(e);
+              }}
+              onDragLeave={() => setDragOverInfo(null)}
+              onDrop={(e) => handleDrop(e, item.id, dragOverInfo?.position)}
             >
               <div className="flex items-center w-full" >
                 {
@@ -733,12 +754,25 @@
                         handleDragStart(e, item.id);
                       }}
                       onDragOver={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        let position = 'inside';
+                        if (item.type === 'group') {
+                          if (y < rect.height * 0.25) position = 'before';
+                          else if (y > rect.height * 0.75) position = 'after';
+                        } else {
+                          if (y < rect.height / 2) position = 'before';
+                          else position = 'after';
+                        }
+                        setDragOverInfo({ id: item.id, position });
                         handleDragOver(e);
                       }}
+                      onDragLeave={() => setDragOverInfo(null)}
                       onDrop={(e) => {
                         e.stopPropagation();
-                        handleDrop(e, item.id);
+                        handleDrop(e, item.id, dragOverInfo?.position);
                       }}
                       className={`px-1 ${isSelected && item.color === '#000000' ? 'bg-blue-600 text-white' : ''} ${isSelected && item.color !== '#000000' ? 'font-bold' : ''}`}
                       style={{ color: isSelected && item.color === '#000000' ? 'white' : item.color }}
@@ -882,8 +916,8 @@
             contextMenu.visible && (
               <div
                 className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-50 w-32 py-1 flex flex-col"
-                style={{ top: contextMenu.y, left: contextMenu.x }
-                }
+                style={{ top: contextMenu.y, left: contextMenu.x }}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="px-3 py-1 text-xs font-bold border-b border-gray-300 text-gray-600" > Actions </span>
