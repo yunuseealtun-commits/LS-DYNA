@@ -302,6 +302,7 @@
       const [selectedParameter, setSelectedParameter] = useState(null);
       const [isEditorOpen, setIsEditorOpen] = useState(false);
       const [tempNote, setTempNote] = useState('');
+      const [paramContextMenu, setParamContextMenu] = useState({ visible: false, x: 0, y: 0, paramName: null });
 
       const [isSaving, setIsSaving] = useState(false);
       const [saveMessage, setSaveMessage] = useState('');
@@ -318,7 +319,16 @@
             if (data.parameterNotes) setParameterNotes(data.parameterNotes);
             if (data.expandedNodes) setExpandedNodes(data.expandedNodes);
           })
-          .catch(err => console.log('DB Load Info:', err.message));
+          .catch(err => {
+            console.log('DB Load Info:', err.message);
+            const local = localStorage.getItem('lsdyna_notes_db');
+            if (local) {
+              const data = JSON.parse(local);
+              if (data.treeData) setTreeData(data.treeData);
+              if (data.parameterNotes) setParameterNotes(data.parameterNotes);
+              if (data.expandedNodes) setExpandedNodes(data.expandedNodes);
+            }
+          });
       }, []);
 
       const isInitialDbLoad = React.useRef(true);
@@ -328,21 +338,24 @@
           setIsSaving(true);
           setSaveMessage('Saving...');
         }
+        const stateObj = { treeData, parameterNotes, expandedNodes };
         fetch('http://localhost:8000/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ treeData, parameterNotes, expandedNodes })
+          body: JSON.stringify(stateObj)
         })
           .then(res => res.json())
           .then(data => {
+            localStorage.setItem('lsdyna_notes_db', JSON.stringify(stateObj));
             if (!silent) {
               setSaveMessage('Saved Successfully!');
               setTimeout(() => setSaveMessage(''), 3000);
             }
           })
           .catch(err => {
+            localStorage.setItem('lsdyna_notes_db', JSON.stringify(stateObj));
             if (!silent) {
-              setSaveMessage(`Error Saving: ${err.message}`);
+              setSaveMessage(`Local Saved`);
               setTimeout(() => setSaveMessage(''), 4000);
             }
           })
@@ -559,13 +572,14 @@
         setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
       };
 
-      const handleAddNode = () => {
+      const handleAddNode = (targetParentId) => {
         let newName = 'NEW_KEYWORD';
+        const idToUse = typeof targetParentId === 'string' ? targetParentId : selectedNode;
 
         // Auto-prefix logic based on selected node's context
-        if (selectedNode) {
+        if (idToUse) {
           // Find the selected node to determine its parent or its own name
-          const selected = findNodeById(treeData, selectedNode);
+          const selected = findNodeById(treeData, idToUse);
           if (selected) {
             if (selected.type === 'group') {
               newName = selected.name.replace(/^\*/, '') + '_';
@@ -581,7 +595,7 @@
                 }
                 return null;
               };
-              const parent = findParent(treeData, selectedNode);
+              const parent = findParent(treeData, idToUse);
               if (parent) {
                 newName = parent.name.replace(/^\*/, '') + '_';
               }
@@ -591,21 +605,65 @@
 
         const emptyRow = Array(8).fill(null).map(() => ({ label: 'NEW', val: '' }));
         const newNode = { id: generateId(), name: newName, type: 'item', color: '#000000', rows: [emptyRow] };
-        pasteNode(newNode);
+
+        setTreeData(prev => {
+          if (!idToUse) return [...prev, newNode];
+          const insertIntoTree = (nodes) => {
+            let newNodes = [];
+            for (const node of nodes) {
+              if (node.id === idToUse) {
+                if (node.type === 'group') {
+                  newNodes.push({ ...node, children: [...(node.children || []), newNode] });
+                  setExpandedNodes(e => ({ ...e, [node.id]: true }));
+                } else {
+                  newNodes.push(node, newNode);
+                }
+              } else if (node.children) {
+                newNodes.push({ ...node, children: insertIntoTree(node.children) });
+              } else {
+                newNodes.push(node);
+              }
+            }
+            return newNodes;
+          };
+          return insertIntoTree(prev);
+        });
+
         setRenamingNodeId(newNode.id);
         setRenameText(newName);
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+        setSelectedNode(newNode.id);
       };
 
-      const handleDeleteNode = () => {
-        if (!selectedNode) return;
+      const handleDeleteNode = (targetId) => {
+        const idToUse = typeof targetId === 'string' ? targetId : selectedNode;
+        if (!idToUse) return;
+
+        const nodeToDelete = findNodeById(treeData, idToUse);
+        if (!nodeToDelete) return;
+
+        const getNames = (node, names = []) => {
+          if (node.type !== 'group') names.push(node.name);
+          if (node.children) node.children.forEach(c => getNames(c, names));
+          return names;
+        };
+
+        const affectedNames = getNames(nodeToDelete);
+        const confirmMsg = `Are you sure you want to delete ${nodeToDelete.type === 'group' ? 'this folder and ' : ''}these items?\n\n`
+          + affectedNames.slice(0, 10).join('\n')
+          + (affectedNames.length > 10 ? '\n...and more' : '');
+
+        if (!window.confirm(confirmMsg)) return;
+
         const deleteFromTree = (nodes) => {
-          return nodes.filter(n => n.id !== selectedNode).map(n => ({
+          return nodes.filter(n => n.id !== idToUse).map(n => ({
             ...n,
             children: n.children ? deleteFromTree(n.children) : undefined
           }));
         };
         setTreeData(prev => deleteFromTree(prev));
-        setSelectedNode(null);
+        if (selectedNode === idToUse) setSelectedNode(null);
+        setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
       };
 
       const handleRenameSubmit = () => {
@@ -635,7 +693,10 @@
       };
 
       useEffect(() => {
-        const closeMenu = () => setContextMenu(prev => ({ ...prev, visible: false }));
+        const closeMenu = () => {
+          setContextMenu(prev => ({ ...prev, visible: false }));
+          setParamContextMenu(prev => ({ ...prev, visible: false }));
+        };
         document.addEventListener('pointerdown', closeMenu);
         return () => document.removeEventListener('pointerdown', closeMenu);
       }, []);
@@ -878,9 +939,7 @@
                                       onContextMenu={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        setSelectedParameter(field.label);
-                                        setTempNote(parameterNotes[field.label] || '');
-                                        setIsEditorOpen(true);
+                                        setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label });
                                       }}
                                     > {field.label} </span>
                                     < input
@@ -966,6 +1025,27 @@
       return (
         <div className="h-screen w-screen bg-teal-800 relative font-sans text-[13px] overflow-hidden" >
 
+          {paramContextMenu.visible && (
+            <div
+              className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-32 py-1 flex flex-col"
+              style={{ top: paramContextMenu.y, left: paramContextMenu.x }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            >
+              <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                onClick={() => {
+                  setSelectedParameter(paramContextMenu.paramName);
+                  setTempNote(parameterNotes[paramContextMenu.paramName] || '');
+                  setIsEditorOpen(true);
+                  setParamContextMenu({ visible: false, x: 0, y: 0, paramName: null });
+                }}
+              >
+                <FileText size={10} /> Open Note
+              </button>
+            </div>
+          )}
+
           {/* Context Menu for Right Click Color Selection */}
           {
             contextMenu.visible && (
@@ -1002,15 +1082,24 @@
                     </button>
                   )
                 }
+                {
+                  (contextMenu.nodeId && findNodeById(treeData, contextMenu.nodeId)?.type === 'group') && (
+                    <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                      onClick={() => handleAddNode(contextMenu.nodeId)}
+                    >
+                      <FileText size={10} /> New Card
+                    </button>
+                  )
+                }
                 < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                   onClick={() => handleStartRename(contextMenu.nodeId)}
                 >
                   <FileText size={10} /> Rename (F2)
                 </button>
                 < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
-                  onClick={() => handleAddFolder(contextMenu.nodeId)}
+                  onClick={() => handleDeleteNode(contextMenu.nodeId)}
                 >
-                  <Folder size={10} /> New Folder
+                  <X size={10} /> Delete
                 </button>
                 < span className="px-3 py-1 text-xs font-bold border-b border-gray-300 border-t mt-1 text-gray-600" > Renk Seç </span>
                 < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2" onClick={() => changeNodeColor('#000000')}> <Square size={10} fill="#000000" /> Varsayılan </button>
@@ -1089,11 +1178,11 @@
 
                 {/* Action Buttons */}
                 <div className="flex justify-between gap-2 pt-1" >
-                  <div className="text-xs text-gray-500 self-center" > Right - click for colors </div>
+                  <div className="text-xs text-gray-500 self-center" > Right - click for colors and actions </div>
                   < div className="flex gap-2" >
                     <button onClick={() => handleAddFolder(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Folder </button>
-                    < button onClick={handleAddNode} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
-                    < button onClick={handleDeleteNode} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
+                    < button onClick={() => handleAddNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > New Card </button>
+                    < button onClick={() => handleDeleteNode(selectedNode)} className="px-4 py-1 bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-sm" > Delete </button>
                   </div>
                 </div>
               </div>
