@@ -644,7 +644,7 @@
     };
 
     // ================= MIND MAP COMPONENT =================
-    const MindMapNode = ({ node, updateNode, deleteNode, startDrawEdge, completeEdge, setActiveNodeId, snapToGrid, transform = { scale: 1 } }) => {
+    const MindMapNode = ({ node, updateNode, deleteNode, startDrawEdge, completeEdge, setActiveNodeId, activeNodeId, snapToGrid, transform = { scale: 1 } }) => {
       const { treeData } = React.useContext(AppContext);
       const [isDragging, setIsDragging] = useState(false);
       const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -743,7 +743,16 @@
           className={`absolute flex flex-col group ${isKeyword ? 'mindmap-keyword-node' : ''}`}
           style={{ left: node.x, top: node.y, zIndex: 10, width: nodeW, minHeight: nodeH }}
           onPointerDown={handlePointerDown}
-          onPointerUpCapture={(e) => { e.stopPropagation(); completeEdge(node.id); }} // Allows dropping any edge here
+          onPointerUpCapture={(e) => {
+            e.stopPropagation();
+            const container = e.currentTarget.closest('.mindmap-scroll-container');
+            if (container) {
+              const rect = container.getBoundingClientRect();
+              completeEdge(node.id, (e.clientX - rect.left - transform.x) / transform.scale, (e.clientY - rect.top - transform.y) / transform.scale);
+            } else {
+              completeEdge(node.id);
+            }
+          }} // Allows dropping any edge here
         >
           {/* Inner content wrapper handles borders, bg safely without clipping the outer hover handles or quill dropdowns */}
           <div className="absolute inset-0 flex flex-col transition-shadow group-hover:shadow-lg bg-white border border-gray-300 rounded-xl shadow-md z-20">
@@ -754,7 +763,7 @@
                     <FileText size={12} className="shrink-0" />
                     <span className="text-[11px] font-bold truncate" title={node.name}>{node.name}</span>
                   </div>
-                  <button onClick={() => deleteNode(node.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X size={12} /></button>
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteNode(node.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X size={12} /></button>
                 </div>
                 {node.globalNote && (
                   <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] flex-1 overflow-y-auto rounded-b-xl" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
@@ -762,12 +771,16 @@
               </div>
             ) : (
               <div className="flex flex-col h-full w-full bg-white rounded-xl">
-                <div className="bg-gray-100 border-b border-gray-200 h-6 flex items-center px-1 cursor-grab active:cursor-grabbing group-hover:bg-gray-200 transition-colors shrink-0 rounded-t-xl">
+                <div className="bg-gray-100 border-b border-gray-200 h-6 flex items-center px-1 group-hover:bg-gray-200 transition-colors shrink-0 rounded-t-xl">
+                  <div className="cursor-grab active:cursor-grabbing px-1 text-gray-400" onPointerDown={handlePointerDown}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></svg>
+                  </div>
                   <div className="flex items-center flex-1 overflow-hidden pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
-                    <span className="text-gray-500 text-[9px] font-bold mr-1 hidden group-hover:inline-block">ID:</span>
                     <input
-                      className="bg-transparent border-none outline-none text-[9px] text-gray-700 w-full font-bold"
-                      placeholder="Link keyword..."
+                      className="bg-transparent border-none outline-none text-[10px] text-gray-700 w-full font-bold px-1"
+                      placeholder="Node Name or Keyword ID..."
+                      value={node.name || ''}
+                      onChange={(e) => updateNode(node.id, { name: e.target.value })}
                       onBlur={(e) => {
                         const val = e.target.value.trim().toUpperCase();
                         if (val) {
@@ -779,21 +792,17 @@
                               name: kwNode.name,
                               globalNote: kwNode.globalNote
                             });
-                          } else {
-                            e.target.style.color = 'red';
-                            e.target.value = 'NOT FOUND';
-                            setTimeout(() => { if (e.target) { e.target.style.color = ''; e.target.value = val; } }, 1000);
                           }
                         }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                     />
                   </div>
-                  <button onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                 </div>
                 <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => e.stopPropagation()}>
                   <ReactQuill
-                    className="mindmap-node-editor flex-1 flex flex-col min-h-0"
+                    className={`mindmap-node-editor flex-1 flex flex-col min-h-0 ${activeNodeId === node.id ? 'active-editor' : ''}`}
                     theme="snow"
                     modules={{ toolbar: [['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'font': [] }, { 'size': ['small', false, 'large'] }], [{ 'align': [] }, { 'list': 'bullet' }]] }}
                     value={node.text || ''}
@@ -911,13 +920,29 @@
         setDrawingEdge({ from: nodeId, fromHandle: handle, startX, startY, currentX: startX, currentY: startY });
       };
 
-      const completeEdge = (nodeId) => {
+      const completeEdge = (nodeId, x, y) => {
+        let toHandle = 'left';
+        // Auto-calculate closest handle if coords provided
+        if (x !== undefined && y !== undefined) {
+          const toNode = nodes.find(n => n.id === nodeId);
+          if (toNode) {
+            const w = toNode.width || (toNode.type === 'keyword' ? 180 : 150);
+            const h = typeof toNode.height === 'number' ? toNode.height : (toNode.type === 'keyword' ? 34 : 80);
+            const topD = Math.abs(y - toNode.y);
+            const bottomD = Math.abs(y - (toNode.y + h));
+            const leftD = Math.abs(x - toNode.x);
+            const rightD = Math.abs(x - (toNode.x + w));
+            const minD = Math.min(topD, bottomD, leftD, rightD);
+            if (minD === topD) toHandle = 'top';
+            else if (minD === bottomD) toHandle = 'bottom';
+            else if (minD === rightD) toHandle = 'right';
+          }
+        }
+
         if (drawingEdge && drawingEdge.from !== nodeId) {
-          // guess toHandle based on geometry, or default left
-          setEdges(es => [...es, { id: Date.now().toString(), from: drawingEdge.from, fromHandle: drawingEdge.fromHandle, to: nodeId, toHandle: 'left', color: '#000080', direction: 'forward', label: '' }]);
+          setEdges(es => [...es, { id: Date.now().toString(), from: drawingEdge.from, fromHandle: drawingEdge.fromHandle, to: nodeId, toHandle, color: '#000080', direction: 'forward', label: '' }]);
         } else if (edgeDragging && edgeDragging.edgeId) {
-          // Relink detached edge
-          setEdges(es => es.map(e => e.id === edgeDragging.edgeId ? { ...e, to: nodeId, toHandle: 'left' } : e));
+          setEdges(es => es.map(e => e.id === edgeDragging.edgeId ? { ...e, to: nodeId, toHandle } : e));
         }
         setDrawingEdge(null);
         setEdgeDragging(null);
@@ -1134,7 +1159,7 @@
                   updates.y = Math.round(updates.y / 20) * 20;
                 }
                 updateNode(id, updates);
-              }} deleteNode={deleteNode} startDrawEdge={startDrawEdge} completeEdge={completeEdge} setActiveNodeId={setActiveNodeId} snapToGrid={snapToGrid} transform={transform} />
+              }} deleteNode={deleteNode} startDrawEdge={startDrawEdge} completeEdge={completeEdge} setActiveNodeId={setActiveNodeId} activeNodeId={activeNodeId} snapToGrid={snapToGrid} transform={transform} />
             ))}
           </div>
 
@@ -3290,94 +3315,90 @@
               ))
             }
             {/* ReactQuill Editor Overlay - OneNote Style */}
-            {
-              isEditorOpen && (
-                <DraggableWindow
-                  id="editor"
-                  title={`📝 OneNote Editor`}
-                  zIndex={notesEditorWindow.zIndex}
-                  onFocus={() => {
-                    const newZ = maxZIndex + 1;
-                    setMaxZIndex(newZ);
-                    setNotesEditorWindow(prev => ({ ...prev, zIndex: newZ }));
-                  }}
-                  onClose={() => {
-                    setIsEditorOpen(false);
-                    // Changes are fully auto-saved below
-                  }}
-                  isMinimized={notesEditorWindow.isMinimized}
-                  onMinimize={() => setNotesEditorWindow(prev => ({ ...prev, isMinimized: true }))}
-                  isMaximized={notesEditorWindow.isMaximized}
-                  onMaximize={() => setNotesEditorWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
-                  initialPos={{ x: 80, y: 80 }}
-                  width={800}
-                  height={600}
-                  maxHeight={2000}
-                  allowOverflow={true}
-                >
-                  <div className="w-full h-full flex flex-col bg-[#f3f4f6] font-sans rounded-b-lg overflow-visible" >
+            <div style={{ display: isEditorOpen ? 'block' : 'none' }}>
+              <DraggableWindow
+                id="editor"
+                title={`📝 OneNote Editor`}
+                zIndex={notesEditorWindow.zIndex}
+                onFocus={() => {
+                  const newZ = maxZIndex + 1;
+                  setMaxZIndex(newZ);
+                  setNotesEditorWindow(prev => ({ ...prev, zIndex: newZ }));
+                }}
+                onClose={() => {
+                  setIsEditorOpen(false);
+                  // Changes are fully auto-saved below
+                }}
+                isMinimized={notesEditorWindow.isMinimized}
+                onMinimize={() => setNotesEditorWindow(prev => ({ ...prev, isMinimized: true }))}
+                isMaximized={notesEditorWindow.isMaximized}
+                onMaximize={() => setNotesEditorWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
+                initialPos={{ x: 80, y: 80 }}
+                width={800}
+                height={600}
+                maxHeight={2000}
+                allowOverflow={true}
+              >
+                <div className="w-full h-full flex flex-col bg-[#f3f4f6] font-sans rounded-b-lg overflow-visible" >
 
-                    {/* Modern Header */}
-                    <div className="flex items-center px-6 py-4 bg-white border-b shadow-sm gap-4 shrink-0 z-20">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <FileText size={20} className="text-purple-600" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-purple-600 uppercase tracking-wider">{findNodeById(treeData, paramContextMenu.nodeId)?.name || 'Parameter'}</span>
-                        <div className="flex items-baseline gap-3">
-                          <input
-                            type="text"
-                            readOnly
-                            value={selectedParameter}
-                            className="text-2xl font-bold text-gray-800 outline-none bg-transparent max-w-full"
-                          />
-                          <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap hidden sm:block">
-                            Last edited recently
-                          </span>
-                        </div>
-                      </div>
-                      <div className="ml-auto flex items-center gap-3">
-                        <span className="text-xs text-gray-400">Zoom: {editorZoom}%</span>
-                        <div className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded shadow-inner border border-green-200">Auto-saved</div>
-                        <button
-                          className="px-6 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-colors"
-                          onClick={() => {
-                            // ReactQuill sometimes crashes if unmounted synchronously while focused. Timeout helps cleanly blur.
-                            setTimeout(() => setIsEditorOpen(false), 20);
-                          }}
-                        >
-                          Close Page
-                        </button>
+                  {/* Modern Header */}
+                  <div className="flex items-center px-6 py-4 bg-white border-b shadow-sm gap-4 shrink-0 z-20">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <FileText size={20} className="text-purple-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-purple-600 uppercase tracking-wider">{findNodeById(treeData, paramContextMenu.nodeId)?.name || 'Parameter'}</span>
+                      <div className="flex items-baseline gap-3">
+                        <input
+                          type="text"
+                          readOnly
+                          value={selectedParameter}
+                          className="text-2xl font-bold text-gray-800 outline-none bg-transparent max-w-full"
+                        />
+                        <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap hidden sm:block">
+                          Last edited recently
+                        </span>
                       </div>
                     </div>
-
-                    {/* Editor Canvas Area */}
-                    <div className="flex-1 overflow-auto bg-[#eef0f4] p-6 relative"
-                      onWheel={(e) => {
-                        if (e.ctrlKey) {
-                          e.preventDefault();
-                          if (e.deltaY < 0) setEditorZoom(z => Math.min(z + 10, 300));
-                          else setEditorZoom(z => Math.max(z - 10, 50));
-                        }
-                      }}
-                    >
-                      <div
-                        className="bg-white rounded-lg shadow-md mx-auto min-h-full transition-transform origin-top-center onenote-editor border border-gray-200"
-                        style={{ width: '850px', maxWidth: '95%', zoom: `${editorZoom}%` }}
+                    <div className="ml-auto flex items-center gap-3">
+                      <span className="text-xs text-gray-400">Zoom: {editorZoom}%</span>
+                      <button
+                        className="px-6 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-colors"
+                        onClick={() => {
+                          setIsEditorOpen(false);
+                        }}
                       >
-                        <ReactQuill
-                          theme="snow"
-                          value={tempNote}
-                          onChange={setTempNote}
-                          className="h-full border-0 text-[14px]"
-                          modules={quillModules}
-                        />
-                      </div>
+                        Close Page
+                      </button>
                     </div>
                   </div>
-                </DraggableWindow>
-              )
-            }
+
+                  {/* Editor Canvas Area */}
+                  <div className="flex-1 overflow-auto bg-[#eef0f4] p-6 relative"
+                    onWheel={(e) => {
+                      if (e.ctrlKey) {
+                        e.preventDefault();
+                        if (e.deltaY < 0) setEditorZoom(z => Math.min(z + 10, 300));
+                        else setEditorZoom(z => Math.max(z - 10, 50));
+                      }
+                    }}
+                  >
+                    <div
+                      className="bg-white rounded-lg shadow-md mx-auto min-h-full transition-transform origin-top-center onenote-editor border border-gray-200"
+                      style={{ width: '850px', maxWidth: '95%', zoom: `${editorZoom}%` }}
+                    >
+                      <ReactQuill
+                        theme="snow"
+                        value={tempNote}
+                        onChange={setTempNote}
+                        className="h-full border-0 text-[14px]"
+                        modules={quillModules}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </DraggableWindow>
+            </div>
 
             {/* Mind Map Window */}
             {isMindMapOpen && (
