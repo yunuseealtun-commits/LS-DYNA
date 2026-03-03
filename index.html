@@ -755,7 +755,7 @@
           }} // Allows dropping any edge here
         >
           {/* Inner content wrapper handles borders, bg safely without clipping the outer hover handles or quill dropdowns */}
-          <div className="absolute inset-0 flex flex-col transition-shadow group-hover:shadow-lg bg-white border border-gray-300 rounded-xl shadow-md z-20">
+          <div className="flex-1 w-full relative flex flex-col transition-shadow group-hover:shadow-lg bg-white border border-gray-300 rounded-xl shadow-md z-20">
             {isKeyword ? (
               <div className="flex flex-col h-full w-full">
                 <div className={`bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-950 flex justify-between items-center px-2 py-1.5 cursor-grab active:cursor-grabbing w-full ${node.globalNote ? 'rounded-t-xl' : 'rounded-xl'}`}>
@@ -1054,7 +1054,8 @@
           onContextMenu={(e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON' && !e.target.closest('.node-content') && !e.target.closest('.mindmap-node-wrapper')) {
               e.preventDefault();
-              setCanvasCtx({ visible: true, x: e.clientX, y: e.clientY });
+              const rect = e.currentTarget.getBoundingClientRect();
+              setCanvasCtx({ visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top });
             }
           }}
           onPointerMove={(e) => {
@@ -1118,7 +1119,13 @@
 
                 return (
                   <g key={edge.id} className="pointer-events-auto"
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setEdgeCtx({ visible: true, x: e.clientX, y: e.clientY, edgeId: edge.id }); }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const c = e.target.closest('.mindmap-scroll-container');
+                      const r = c ? c.getBoundingClientRect() : { left: 0, top: 0 };
+                      setEdgeCtx({ visible: true, x: e.clientX - r.left, y: e.clientY - r.top, edgeId: edge.id });
+                    }}
                   >
                     <path d={pathStr} stroke="transparent" strokeWidth="20" fill="none" className="cursor-pointer hover:stroke-gray-300/30" />
                     <path d={pathStr} stroke={edge.color || '#000080'} strokeWidth="2" fill="none"
