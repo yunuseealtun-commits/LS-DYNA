@@ -1054,8 +1054,7 @@
           onContextMenu={(e) => {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON' && !e.target.closest('.node-content') && !e.target.closest('.mindmap-node-wrapper')) {
               e.preventDefault();
-              const rect = e.currentTarget.getBoundingClientRect();
-              setCanvasCtx({ visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top });
+              setCanvasCtx({ visible: true, x: e.clientX, y: e.clientY });
             }
           }}
           onPointerMove={(e) => {
