@@ -2124,7 +2124,7 @@
 
       // Fetch data on load
       useEffect(() => {
-        fetch('http://localhost:8000/api/data')
+        fetch('/api/data')
           .then(res => {
             if (!res.ok) throw new Error('No existing db, using default keywords.');
             return res.json();
@@ -2154,7 +2154,7 @@
           setSaveMessage('Saving...');
         }
         const stateObj = { treeData, parameterNotes, expandedNodes };
-        fetch('http://localhost:8000/api/data', {
+        fetch('/api/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stateObj)
