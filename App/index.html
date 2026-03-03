@@ -230,10 +230,6 @@
     // ReactQuill is included via UMD script from CDN
     const ReactQuill = window.ReactQuill || (props => <div className="p-4 text-red-600 bg-red-50 border border-red-200 rounded">ReactQuill Editor (Failed to load from CDN). Please check your internet connection and refresh (Ctrl+F5).</div>);
 
-    import { initialTreeData } from '../Database/keywords.js';
-
-    // The user will need to map `../Database/keywords.js` if necessary, but this script block isn't a typical module.
-
     const initialTreeData = [
       { id: 'kw', name: '*KEYWORD', type: 'item', color: '#000000' },
       { id: 'tit', name: '*TITLE', type: 'item', color: '#000000', rows: [[{ label: 'TITLE', val: 'LS-DYNA keyword deck by LS-PrePost' }]] },
