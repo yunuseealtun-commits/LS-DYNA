@@ -694,11 +694,11 @@
           onPointerDown={handlePointerDown}
           onPointerUpCapture={(e) => { e.stopPropagation(); completeEdge(node.id); }} // Allows dropping any edge here
         >
-          {/* Inner content wrapper handles borders, bg and overflow-hidden safely without clipping the outer hover handles */}
-          <div className="absolute inset-0 border border-gray-300 shadow-md flex flex-col rounded-xl bg-white overflow-hidden transition-shadow group-hover:shadow-lg">
+          {/* Inner content wrapper handles borders, bg safely without clipping the outer hover handles or quill dropdowns */}
+          <div className="absolute inset-0 flex flex-col transition-shadow group-hover:shadow-lg bg-white border border-gray-300 rounded-xl shadow-md z-20">
             {isKeyword ? (
               <div className="flex flex-col h-full w-full">
-                <div className="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-950 flex justify-between items-center px-2 py-1.5 cursor-grab active:cursor-grabbing w-full">
+                <div className={`bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-950 flex justify-between items-center px-2 py-1.5 cursor-grab active:cursor-grabbing w-full ${node.globalNote ? 'rounded-t-xl' : 'rounded-xl'}`}>
                   <div className="flex items-center gap-1.5 overflow-hidden text-white">
                     <FileText size={12} className="shrink-0" />
                     <span className="text-[11px] font-bold truncate" title={node.name}>{node.name}</span>
@@ -706,12 +706,12 @@
                   <button onClick={() => deleteNode(node.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X size={12} /></button>
                 </div>
                 {node.globalNote && (
-                  <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] flex-1 overflow-y-auto" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
+                  <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] flex-1 overflow-y-auto rounded-b-xl" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
                 )}
               </div>
             ) : (
-              <div className="flex flex-col h-full w-full bg-white">
-                <div className="bg-gray-100 border-b border-gray-200 h-6 flex items-center px-1 cursor-grab active:cursor-grabbing group-hover:bg-gray-200 transition-colors shrink-0">
+              <div className="flex flex-col h-full w-full bg-white rounded-xl">
+                <div className="bg-gray-100 border-b border-gray-200 h-6 flex items-center px-1 cursor-grab active:cursor-grabbing group-hover:bg-gray-200 transition-colors shrink-0 rounded-t-xl">
                   <div className="flex items-center flex-1 overflow-hidden pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
                     <span className="text-gray-500 text-[9px] font-bold mr-1 hidden group-hover:inline-block">ID:</span>
                     <input
@@ -740,11 +740,11 @@
                   </div>
                   <button onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                 </div>
-                <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border overflow-hidden bg-white pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
+                <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => e.stopPropagation()}>
                   <ReactQuill
                     className="mindmap-node-editor flex-1 flex flex-col min-h-0"
                     theme="snow"
-                    modules={{ toolbar: [['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'size': ['small', false, 'large'] }], [{ 'list': 'bullet' }]] }}
+                    modules={{ toolbar: [['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'font': [] }, { 'size': ['small', false, 'large'] }], [{ 'align': [] }, { 'list': 'bullet' }]] }}
                     value={node.text || ''}
                     onChange={(val) => updateNode(node.id, { text: val })}
                     placeholder="Type your notes..."
@@ -2106,8 +2106,18 @@
         if (e.dataTransfer) {
           e.dataTransfer.effectAllowed = 'all'; // Required to allow drop 'copy' action
           e.dataTransfer.setData('text/plain', id); // required for Firefox
+
+          const node = findNodeById(treeData, id);
+          if (node) {
+            const dragGhost = document.createElement('div');
+            dragGhost.textContent = ` ${node.name} `;
+            dragGhost.style.cssText = 'background: #1e3a8a; color: white; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; position: absolute; top: -1000px; display: inline-block; white-space: nowrap; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);';
+            document.body.appendChild(dragGhost);
+            e.dataTransfer.setDragImage(dragGhost, 10, 10);
+            setTimeout(() => { if (document.body.contains(dragGhost)) document.body.removeChild(dragGhost); }, 100);
+          }
         }
-      }, []);
+      }, [treeData, findNodeById]);
 
       const handleDragOver = useCallback((e) => {
         e.preventDefault();
