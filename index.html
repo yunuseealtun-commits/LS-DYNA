@@ -141,7 +141,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useCallback, useRef } = React;
     const { createRoot } = ReactDOM;
-    const { Minus, Plus, Search, FileText, Folder, Settings, X, Square } = LucideReact;
+    const { Minus, Plus, Search, FileText, Folder, Settings, X, Square, Scan, Type } = LucideReact;
 
     // ReactQuill is included via UMD script from CDN
     const ReactQuill = window.ReactQuill || (props => <div className="p-4 text-red-600 bg-red-50 border border-red-200 rounded">ReactQuill Editor (Failed to load from CDN). Please check your internet connection and refresh (Ctrl+F5).</div>);
@@ -316,7 +316,7 @@
     const DraggableWindow = ({
       id, title, children, onClose, initialPos, zIndex, onFocus,
       width = 450, height, minHeight = 200, maxHeight = 800,
-      isMinimized, onMinimize, isMaximized, onMaximize
+      isMinimized, onMinimize, isMaximized, onMaximize, allowOverflow = false
     }) => {
       const [pos, setPos] = useState(initialPos);
       const [isDragging, setIsDragging] = useState(false);
@@ -351,14 +351,14 @@
         e.target.releasePointerCapture(e.pointerId);
       };
 
-      if (isMinimized) return null;
-
       const [maxDims, setMaxDims] = useState({ w: window.innerWidth, h: window.innerHeight - 30 });
       useEffect(() => {
         const handleResize = () => setMaxDims({ w: window.innerWidth, h: window.innerHeight - 30 });
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
       }, []);
+
+      if (isMinimized) return null;
 
       const windowStyle = isMaximized
         ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 200 }
@@ -367,7 +367,7 @@
       return (
         <div
           ref={windowRef}
-          className={`absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl overflow-hidden ${isMaximized ? '' : 'resize'}`}
+          className={`absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} ${isMaximized ? '' : 'resize'}`}
           style={windowStyle}
           onMouseDown={onFocus}
         >
@@ -394,7 +394,7 @@
               )}
             </div>
           </div>
-          < div className="flex-1 flex flex-col overflow-hidden min-h-0" >
+          < div className={`flex-1 flex flex-col ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} min-h-0`} >
             {children}
           </div>
         </div>
@@ -555,6 +555,559 @@
           </button>
         </div>
       );
+    };
+
+    // ================= MIND MAP COMPONENT =================
+    const MindMapNode = ({ node, updateNode, deleteNode, startDrawEdge, completeEdge, setActiveNodeId, snapToGrid, transform = { scale: 1 } }) => {
+      const [isDragging, setIsDragging] = useState(false);
+      const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+      const handlePointerDown = (e) => {
+        if (e.target.closest('.node-content') || e.target.closest('.edge-handle') || e.target.closest('.resize-handle') || e.target.tagName === 'BUTTON') return;
+        if (e.button !== 0) return; // ONLY allow left click for dragging
+
+        // Prevent multiple simultaneous node drags
+        if (window.__lsdyna_mindmap_node_dragging) return;
+        window.__lsdyna_mindmap_node_dragging = true;
+
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const initialNodeX = node.x;
+        const initialNodeY = node.y;
+
+        if (setActiveNodeId) setActiveNodeId(node.id);
+
+        // Ensure pointer events are captured so release works even outside node bounds
+        e.currentTarget.setPointerCapture(e.pointerId);
+
+        const doDrag = (dragEvent) => {
+          updateNode(node.id, {
+            x: initialNodeX + (dragEvent.clientX - startX) / transform.scale,
+            y: initialNodeY + (dragEvent.clientY - startY) / transform.scale
+          });
+        };
+
+        const stopDrag = (stopEvent) => {
+          window.__lsdyna_mindmap_node_dragging = false;
+          if (setActiveNodeId) setActiveNodeId(null);
+          window.removeEventListener('pointermove', doDrag);
+          window.removeEventListener('pointerup', stopDrag);
+          if (stopEvent.target.releasePointerCapture) {
+            stopEvent.target.releasePointerCapture(stopEvent.pointerId);
+          }
+        };
+
+        window.addEventListener('pointermove', doDrag);
+        window.addEventListener('pointerup', stopDrag);
+      };
+
+      const isKeyword = node.type === 'keyword';
+      const nodeW = node.width || (isKeyword ? 180 : 150);
+      const nodeH = node.height || (isKeyword ? 'auto' : 80);
+
+      // Handle custom resizing from bottom-right to support snap-to-grid
+      const startResize = (e) => {
+        if (e.button !== 0) return; // ONLY allow left click for resizing
+        e.stopPropagation();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startW = nodeW;
+        const startH = nodeH === 'auto' ? e.currentTarget.parentElement.offsetHeight : nodeH;
+
+        const doDrag = (dragEvent) => {
+          let newW = startW + (dragEvent.clientX - startX) / transform.scale;
+          let newH = startH + (dragEvent.clientY - startY) / transform.scale;
+          if (snapToGrid) {
+            newW = Math.round(newW / 20) * 20;
+            newH = Math.round(newH / 20) * 20;
+          }
+          updateNode(node.id, { width: Math.max(100, newW), height: Math.max(40, newH) });
+        };
+        const stopDrag = (stopEvent) => {
+          window.removeEventListener('pointermove', doDrag);
+          window.removeEventListener('pointerup', stopDrag);
+          if (stopEvent.target.releasePointerCapture) {
+            stopEvent.target.releasePointerCapture(stopEvent.pointerId);
+          }
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        window.addEventListener('pointermove', doDrag);
+        window.addEventListener('pointerup', stopDrag);
+      };
+
+      return (
+        <div
+          className={`absolute flex flex-col group ${isKeyword ? 'mindmap-keyword-node' : ''}`}
+          style={{ left: node.x, top: node.y, zIndex: 10, width: nodeW, minHeight: nodeH }}
+          onPointerDown={handlePointerDown}
+          onPointerUpCapture={(e) => { e.stopPropagation(); completeEdge(node.id); }} // Allows dropping any edge here
+        >
+          {/* Inner content wrapper handles borders, bg and overflow-hidden safely without clipping the outer hover handles */}
+          <div className="absolute inset-0 border border-gray-300 shadow-md flex flex-col rounded-xl bg-white overflow-hidden transition-shadow group-hover:shadow-lg">
+            {isKeyword ? (
+              <div className="flex flex-col h-full w-full">
+                <div className="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-950 flex justify-between items-center px-2 py-1.5 cursor-grab active:cursor-grabbing w-full">
+                  <div className="flex items-center gap-1.5 overflow-hidden text-white">
+                    <FileText size={12} className="shrink-0" />
+                    <span className="text-[11px] font-bold truncate" title={node.name}>{node.name}</span>
+                  </div>
+                  <button onClick={() => deleteNode(node.id)} className="text-gray-300 hover:text-red-400 shrink-0"><X size={12} /></button>
+                </div>
+                {node.globalNote && (
+                  <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] flex-1 overflow-y-auto" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col h-full w-full bg-white">
+                <div className="bg-gray-100 border-b border-gray-200 h-6 flex justify-between items-center px-2 cursor-grab active:cursor-grabbing group-hover:bg-gray-200 transition-colors shrink-0">
+                  <span className="text-gray-500 text-[9px] font-bold truncate pr-1 hidden group-hover:inline-block">ID: {node.id.substring(node.id.length - 4)}</span>
+                  <button onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
+                </div>
+                <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] px-2 py-1.5 w-full box-border overflow-hidden bg-white">
+                  <textarea
+                    className="w-full flex-1 bg-transparent resize-none outline-none font-sans text-[12px] text-gray-800 m-0 p-0 overflow-y-auto block"
+                    value={node.text}
+                    onChange={(e) => updateNode(node.id, { text: e.target.value })}
+                    placeholder="Type your notes..."
+                    style={{ lineHeight: '1.4', verticalAlign: 'top' }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4 directional edge handles that appear on hover */}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none absolute inset-x-0 inset-y-0 w-full h-full">
+            <div className="pointer-events-auto absolute top-[-6px] left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-crosshair edge-handle hover:bg-blue-100 hover:scale-125 transition-transform" onPointerDown={(e) => { e.stopPropagation(); startDrawEdge(e, node.id, 'top'); }} />
+            <div className="pointer-events-auto absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-crosshair edge-handle hover:bg-blue-100 hover:scale-125 transition-transform" onPointerDown={(e) => { e.stopPropagation(); startDrawEdge(e, node.id, 'bottom'); }} />
+            <div className="pointer-events-auto absolute left-[-6px] top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-crosshair edge-handle hover:bg-blue-100 hover:scale-125 transition-transform" onPointerDown={(e) => { e.stopPropagation(); startDrawEdge(e, node.id, 'left'); }} />
+            <div className="pointer-events-auto absolute right-[-6px] top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-crosshair edge-handle hover:bg-blue-100 hover:scale-125 transition-transform" onPointerDown={(e) => { e.stopPropagation(); startDrawEdge(e, node.id, 'right'); }} />
+          </div>
+
+          <div className="absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize resize-handle opacity-0 group-hover:opacity-100" onPointerDown={startResize}>
+            <svg viewBox="0 0 10 10" className="w-full h-full text-gray-400"><path d="M 8 10 L 10 8 L 10 10 Z M 5 10 L 10 5 L 10 7 L 7 10 Z M 2 10 L 10 2 L 10 4 L 4 10 Z" fill="currentColor" /></svg>
+          </div>
+        </div>
+      );
+    };
+
+    const MindMapCanvas = () => {
+      const { treeData, findNodeById, draggedNodeId, setDraggedNodeId } = React.useContext(AppContext);
+      const [nodes, setNodes] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('lsdyna_mindmap_nodes') || '[]'); } catch { return []; }
+      });
+      const [edges, setEdges] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('lsdyna_mindmap_edges') || '[]'); } catch { return []; }
+      });
+
+      const [drawingEdge, setDrawingEdge] = useState(null);
+
+      const [transform, setTransform] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('lsdyna_mindmap_transform') || '{"x":0,"y":0,"scale":1}'); } catch { return { x: 0, y: 0, scale: 1 }; }
+      });
+      const [isPanning, setIsPanning] = useState(false);
+      const lastPanPos = useRef({ x: 0, y: 0 });
+      const [snapToGrid, setSnapToGrid] = useState(true);
+      const [showSettings, setShowSettings] = useState(false);
+      const [activeNodeId, setActiveNodeId] = useState(null);
+
+      useEffect(() => {
+        const t = setTimeout(() => {
+          localStorage.setItem('lsdyna_mindmap_nodes', JSON.stringify(nodes));
+          localStorage.setItem('lsdyna_mindmap_edges', JSON.stringify(edges));
+          localStorage.setItem('lsdyna_mindmap_transform', JSON.stringify(transform));
+        }, 500);
+        return () => clearTimeout(t);
+      }, [nodes, edges, transform]);
+
+      // Focus / Fit to screen logic
+      const fitToScreen = () => {
+        if (nodes.length === 0) {
+          setTransform({ x: 0, y: 0, scale: 1 });
+          return;
+        }
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        nodes.forEach(n => {
+          if (n.x < minX) minX = n.x;
+          if (n.y < minY) minY = n.y;
+          if (n.x > maxX) maxX = n.x;
+          if (n.y > maxY) maxY = n.y;
+        });
+
+        // Add padding
+        minX -= 100; minY -= 100;
+        maxX += 200; maxY += 200;
+
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        const container = document.querySelector('.mindmap-scroll-container');
+        if (!container) return;
+
+        const vw = container.clientWidth;
+        const vh = container.clientHeight;
+
+        const scaleX = vw / contentWidth;
+        const scaleY = vh / contentHeight;
+        let newScale = Math.min(scaleX, scaleY, 2); // Cap zoom in at 200%
+
+        const offsetX = (vw - contentWidth * newScale) / 2 - minX * newScale;
+        const offsetY = (vh - contentHeight * newScale) / 2 - minY * newScale;
+
+        setTransform({ x: offsetX, y: offsetY, scale: newScale });
+      };
+
+      // Auto fit on first open if empty transform
+      useEffect(() => {
+        if (transform.x === 0 && transform.y === 0 && transform.scale === 1 && nodes.length > 0) {
+          fitToScreen();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
+      const updateNode = (id, updates) => setNodes(ns => ns.map(n => n.id === id ? { ...n, ...updates } : n));
+      const deleteNode = (id) => {
+        setNodes(ns => ns.filter(n => n.id !== id));
+        setEdges(es => es.filter(e => e.from !== id && e.to !== id));
+      };
+
+      const [edgeCtx, setEdgeCtx] = useState({ visible: false, x: 0, y: 0, edgeId: null });
+      const [edgeDragging, setEdgeDragging] = useState(null); // { edgeId: id, currentX, currentY }
+
+      const startDrawEdge = (e, nodeId, handle) => {
+        const rect = e.currentTarget.closest('.mindmap-scroll-container').getBoundingClientRect();
+        const startX = (e.clientX - rect.left - transform.x) / transform.scale;
+        const startY = (e.clientY - rect.top - transform.y) / transform.scale;
+        setDrawingEdge({ from: nodeId, fromHandle: handle, startX, startY, currentX: startX, currentY: startY });
+      };
+
+      const completeEdge = (nodeId) => {
+        if (drawingEdge && drawingEdge.from !== nodeId) {
+          // guess toHandle based on geometry, or default left
+          setEdges(es => [...es, { id: Date.now().toString(), from: drawingEdge.from, fromHandle: drawingEdge.fromHandle, to: nodeId, toHandle: 'left', color: '#000080', direction: 'forward', label: '' }]);
+        } else if (edgeDragging && edgeDragging.edgeId) {
+          // Relink detached edge
+          setEdges(es => es.map(e => e.id === edgeDragging.edgeId ? { ...e, to: nodeId, toHandle: 'left' } : e));
+        }
+        setDrawingEdge(null);
+        setEdgeDragging(null);
+      };
+
+      const getHandlePos = (n, handle) => {
+        const w = n.width || (n.type === 'keyword' ? 180 : 150);
+        const h = typeof n.height === 'number' ? n.height : (n.type === 'keyword' ? 34 : 80);
+        if (handle === 'top') return { x: n.x + w / 2, y: n.y, dx: 0, dy: -60 };
+        if (handle === 'bottom') return { x: n.x + w / 2, y: n.y + h, dx: 0, dy: 60 };
+        if (handle === 'left') return { x: n.x, y: n.y + h / 2, dx: -60, dy: 0 };
+        if (handle === 'right') return { x: n.x + w, y: n.y + h / 2, dx: 60, dy: 0 };
+        return { x: n.x + w / 2, y: n.y + h / 2, dx: 0, dy: 0 }; // fallback center
+      };
+
+      const handleWheel = (e) => {
+        const delta = e.deltaY < 0 ? 0.05 : -0.05;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clientX = e.clientX;
+        const clientY = e.clientY;
+
+        setTransform(prev => {
+          const currentScale = prev?.scale || 1;
+          const currentX = prev?.x || 0;
+          const currentY = prev?.y || 0;
+          let newScale = Math.min(Math.max(0.1, currentScale + delta), 3);
+          const mouseX = clientX - rect.left;
+          const mouseY = clientY - rect.top;
+          const ratio = newScale / currentScale;
+          return {
+            x: mouseX - (mouseX - currentX) * ratio,
+            y: mouseY - (mouseY - currentY) * ratio,
+            scale: newScale
+          };
+        });
+      };
+
+      const [canvasCtx, setCanvasCtx] = useState({ visible: false, x: 0, y: 0 });
+
+      // Automatically close context menus when clicking outside
+      useEffect(() => {
+        const handleGlobalClick = (e) => {
+          if (e.button !== 2) {
+            if (canvasCtx.visible) setCanvasCtx({ visible: false, x: 0, y: 0 });
+            if (edgeCtx.visible) setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null });
+          }
+        };
+        window.addEventListener('pointerdown', handleGlobalClick);
+        return () => window.removeEventListener('pointerdown', handleGlobalClick);
+      }, [canvasCtx.visible, edgeCtx.visible]);
+
+      return (
+        <div className="relative w-full h-full bg-[#f8fafc] overflow-hidden mindmap-scroll-container shadow-inner touch-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)',
+            backgroundSize: `${20 * transform.scale}px ${20 * transform.scale}px`,
+            backgroundPosition: `${transform.x}px ${transform.y}px`
+          }}
+          onWheel={handleWheel}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            // Try both dataTransfer and context state for maximum reliability
+            const id = e.dataTransfer.getData('text/plain') || draggedNodeId;
+            if (id) {
+              const treeNode = findNodeById(treeData, id);
+              if (treeNode && treeNode.type !== 'group') {
+                const rect = e.currentTarget.getBoundingClientRect();
+                let nx = (e.clientX - rect.left - transform.x) / transform.scale;
+                let ny = (e.clientY - rect.top - transform.y) / transform.scale;
+                if (snapToGrid) {
+                  nx = Math.round(nx / 20) * 20;
+                  ny = Math.round(ny / 20) * 20;
+                }
+                setNodes(ns => [...ns, {
+                  id: Date.now().toString(),
+                  type: 'keyword',
+                  keywordId: treeNode.id,
+                  name: treeNode.name,
+                  globalNote: treeNode.globalNote, // Transfer global note if exists
+                  x: nx, y: ny, text: ''
+                }]);
+              }
+            }
+            if (setDraggedNodeId) setDraggedNodeId(null);
+          }}
+          onPointerDown={(e) => {
+            if (e.target.closest('.node-content') || e.target.closest('.edge-handle') || e.target.closest('.bg-\\[\\#000080\\]') || e.target.closest('.mindmap-toolbar') || e.target.closest('button') || e.target.closest('.mindmap-keyword-node')) return;
+            if (e.button === 2) return; // ignore right clicks for panning
+            setCanvasCtx({ visible: false, x: 0, y: 0 });
+            setIsPanning(true);
+            lastPanPos.current = { x: e.clientX, y: e.clientY };
+            if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onContextMenu={(e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON' && !e.target.closest('.mindmap-node')) {
+              e.preventDefault();
+              setCanvasCtx({ visible: true, x: e.clientX, y: e.clientY });
+            }
+          }}
+          onPointerMove={(e) => {
+            if (isPanning) {
+              const dx = e.clientX - lastPanPos.current.x;
+              const dy = e.clientY - lastPanPos.current.y;
+              setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+              lastPanPos.current = { x: e.clientX, y: e.clientY };
+            } else if (drawingEdge) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setDrawingEdge(prev => ({
+                ...prev,
+                currentX: (e.clientX - rect.left - transform.x) / transform.scale,
+                currentY: (e.clientY - rect.top - transform.y) / transform.scale
+              }));
+            } else if (edgeDragging) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setEdgeDragging(prev => ({
+                ...prev,
+                currentX: (e.clientX - rect.left - transform.x) / transform.scale,
+                currentY: (e.clientY - rect.top - transform.y) / transform.scale
+              }));
+            }
+          }}
+          onPointerUp={(e) => {
+            if (isPanning) {
+              setIsPanning(false);
+              if (e.currentTarget.releasePointerCapture) e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+            if (drawingEdge) setDrawingEdge(null);
+            if (edgeDragging) {
+              // If released in empty space, delete the edge since it didn't trigger completeEdge on a node
+              setEdges(es => es.filter(ed => ed.id !== edgeDragging.edgeId));
+              setEdgeDragging(null);
+            }
+          }}
+        // Double click note creation disabled via user request. See canvasCtx Right Click menu for Add Note.
+        >
+          <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', width: '100%', height: '100%', position: 'absolute' }}>
+            <svg className="absolute inset-0 pointer-events-none" style={{ width: 10000, height: 10000, overflow: 'visible' }}>
+              <defs>
+                <marker id="arrow-forward" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+                </marker>
+                <marker id="arrow-reverse" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 10 0 L 0 5 L 10 10 z" fill="context-stroke" />
+                </marker>
+              </defs>
+              {edges.map(edge => {
+                if (edgeDragging && edgeDragging.edgeId === edge.id) return null; // hide while dragging detach
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                if (!fromNode || !toNode) return null;
+
+                const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
+                const p2 = getHandlePos(toNode, edge.toHandle || 'left');
+                const pathStr = `M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${p2.x + p2.dx} ${p2.y + p2.dy}, ${p2.x} ${p2.y}`;
+
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+
+                return (
+                  <g key={edge.id} className="pointer-events-auto"
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setEdgeCtx({ visible: true, x: e.clientX, y: e.clientY, edgeId: edge.id }); }}
+                  >
+                    <path d={pathStr} stroke="transparent" strokeWidth="20" fill="none" className="cursor-pointer hover:stroke-gray-300/30" />
+                    <path d={pathStr} stroke={edge.color || '#000080'} strokeWidth="2" fill="none"
+                      markerEnd={edge.direction === 'none' || edge.direction === 'reverse' ? '' : 'url(#arrow-forward)'}
+                      markerStart={edge.direction === 'bidirectional' || edge.direction === 'reverse' ? 'url(#arrow-reverse)' : ''}
+                      style={{ stroke: edge.color || '#000080' }}
+                    />
+                    {edge.label && (
+                      <text x={midX} y={midY - 5} fill={edge.color || '#000080'} fontSize="10" textAnchor="middle" className="font-bold bg-white">{edge.label}</text>
+                    )}
+                    {/* Detach handle on the arrow head */}
+                    <circle cx={p2.x} cy={p2.y} r="8" fill="transparent" className="cursor-grab hover:fill-red-500/20"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        const rect = e.currentTarget.closest('.mindmap-scroll-container').getBoundingClientRect();
+                        setEdgeDragging({ edgeId: edge.id, currentX: (e.clientX - rect.left - transform.x) / transform.scale, currentY: (e.clientY - rect.top - transform.y) / transform.scale });
+                      }}
+                    />
+                  </g>
+                );
+              })}
+              {drawingEdge && (
+                <path d={`M ${drawingEdge.startX} ${drawingEdge.startY} C ${drawingEdge.startX + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dx} ${drawingEdge.startY + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dy}, ${drawingEdge.currentX - 50} ${drawingEdge.currentY}, ${drawingEdge.currentX} ${drawingEdge.currentY}`} stroke="#0000ff" strokeWidth="2" strokeDasharray="5,5" fill="none" />
+              )}
+              {edgeDragging && (() => {
+                const edge = edges.find(e => e.id === edgeDragging.edgeId);
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
+                return <path d={`M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${edgeDragging.currentX - 50} ${edgeDragging.currentY}, ${edgeDragging.currentX} ${edgeDragging.currentY}`} stroke={edge.color || '#000080'} strokeWidth="2" fill="none" markerEnd="url(#arrow-forward)" />
+              })()}
+              {/* Alignment Guides */}
+              {activeNodeId && (() => {
+                const activeNode = nodes.find(n => n.id === activeNodeId);
+                if (!activeNode) return null;
+                const guides = [];
+                nodes.forEach(n => {
+                  if (n.id === activeNode.id) return;
+                  if (Math.abs(n.x - activeNode.x) < 2) guides.push(<line x1={n.x} y1={-10000} x2={n.x} y2={10000} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
+                  if (Math.abs(n.y - activeNode.y) < 2) guides.push(<line x1={-10000} y1={n.y} x2={10000} y2={n.y} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
+                });
+                return guides.map((g, i) => React.cloneElement(g, { key: `guide-${i}` }));
+              })()}
+            </svg>
+
+            {nodes.map(node => (
+              <MindMapNode key={node.id} node={node} updateNode={(id, updates) => {
+                if (snapToGrid && updates.x !== undefined && updates.y !== undefined) {
+                  updates.x = Math.round(updates.x / 20) * 20;
+                  updates.y = Math.round(updates.y / 20) * 20;
+                }
+                updateNode(id, updates);
+              }} deleteNode={deleteNode} startDrawEdge={startDrawEdge} completeEdge={completeEdge} setActiveNodeId={setActiveNodeId} snapToGrid={snapToGrid} transform={transform} />
+            ))}
+          </div>
+
+          <div className="absolute top-2 left-2 bg-yellow-100 p-2 text-[10px] border border-gray-400 pointer-events-none w-max z-30 opacity-80 shadow rounded text-gray-700">
+            <b>Right-click</b>: Canvas/Edge Menu<br />
+            <b>Drag Grid</b>: Pan Canvas<br />
+            <b>MouseWheel</b>: Zoom
+          </div>
+
+          {/* Floating Toolbar */}
+          <div className="absolute top-4 right-4 flex flex-col gap-2 z-40 mindmap-toolbar">
+            <div className="bg-white border border-gray-300 shadow-md rounded flex flex-col items-center">
+              <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.1, 3) }))} title="Zoom In">
+                <Plus size={16} />
+              </button>
+              <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={fitToScreen} title="Fit to Nodes">
+                <Scan size={16} />
+              </button>
+              <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.1, 0.1) }))} title="Zoom Out">
+                <Minus size={16} />
+              </button>
+            </div>
+            <div className="bg-white border border-gray-300 shadow-md rounded relative">
+              <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setShowSettings(!showSettings)} title="Settings">
+                <Settings size={16} />
+              </button>
+              {showSettings && (
+                <div className="absolute right-full top-0 mr-2 bg-white border shadow-lg rounded w-36 py-1 text-[11px] text-gray-700 flex flex-col border-gray-300">
+                  <label className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
+                    Snap to grid
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Edge Context Menu */}
+          {edgeCtx.visible && (
+            <div
+              className="fixed w-36 bg-white border shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
+              style={{ top: edgeCtx.y, left: edgeCtx.x }}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="px-3 py-1 text-[10px] font-bold text-gray-400 border-b mb-1 uppercase tracking-wider">Edge Setup</div>
+              <button className="text-left px-3 py-1.5 hover:bg-red-50 text-red-600 font-medium flex items-center gap-2"
+                onClick={() => { setEdges(es => es.filter(e => e.id !== edgeCtx.edgeId)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}
+              >
+                <X size={12} /> Delete Edge
+              </button>
+              <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 flex items-center gap-2"
+                onClick={() => {
+                  const lbl = window.prompt("Edge label:");
+                  if (lbl !== null) setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, label: lbl } : e));
+                  setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null });
+                }}
+              >
+                <Type size={12} /> Set Label
+              </button>
+              <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Direction</div>
+              <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'forward' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> → Forward </button>
+              <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'bidirectional' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ↔ Bidirectional </button>
+              <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'none' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ― None </button>
+              <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Color Picker</div>
+              <div className="flex gap-1 px-3 py-2 flex-wrap">
+                {['#000080', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#64748b'].map(c => (
+                  <button key={c} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: c }} onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, color: c } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Canvas Context Menu */}
+          {canvasCtx.visible && (
+            <div
+              className="fixed w-32 bg-white border border-gray-300 shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
+              style={{ top: canvasCtx.y, left: canvasCtx.x }}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 font-medium flex items-center gap-2"
+                onClick={() => {
+                  const scrollContainer = document.querySelector('.mindmap-scroll-container');
+                  if (!scrollContainer) return;
+                  const rect = scrollContainer.getBoundingClientRect();
+                  let nx = (canvasCtx.x - rect.left - transform.x) / transform.scale;
+                  let ny = (canvasCtx.y - rect.top - transform.y) / transform.scale;
+                  if (snapToGrid) {
+                    nx = Math.round(nx / 20) * 20;
+                    ny = Math.round(ny / 20) * 20;
+                  }
+                  setNodes(ns => [...ns, { id: Date.now().toString(), x: nx, y: ny, text: '' }]);
+                  setCanvasCtx({ visible: false, x: 0, y: 0 });
+                }}
+              >
+                <Plus size={12} /> Add Note
+              </button>
+            </div>
+          )}
+        </div>
+      )
     };
 
     // ================= TASKBAR COMPONENT =================
@@ -1120,7 +1673,7 @@
                       return updateGlobalNote(prev);
                     });
                   }}
-                  className="onenote-editor-wrapper flex-1 border-none font-sans text-[11px] h-full overflow-hidden"
+                  className="onenote-editor-wrapper flex-1 border-none font-sans text-[11px] h-full overflow-visible"
                   modules={sidebarQuillModules}
                   placeholder={`Use this space for global keyword notes...`}
                   style={{ '--editor-zoom': `${editorZoom / 100}` }}
@@ -1225,8 +1778,12 @@
       const [mainWindowZ, setMainWindowZ] = useState(10);
       const [mainWindowMinimized, setMainWindowMinimized] = useState(false);
       const [mainWindowMaximized, setMainWindowMaximized] = useState(false);
-      const [mainWindowClosed, setMainWindowClosed] = useState(false);
-      const [maxZIndex, setMaxZIndex] = useState(10);
+      const [mainWindowClosed, setMainWindowClosed] = useState(true);
+      const [maxZIndex, setMaxZIndex] = useState(1);
+
+      // Mind Map State
+      const [isMindMapOpen, setIsMindMapOpen] = useState(false);
+      const [mindMapWindow, setMindMapWindow] = useState({ isMinimized: false, isMaximized: false, zIndex: 12, pos: { x: 50, y: 50 } });
 
       // Notes Editor Management
       const [notesEditorWindow, setNotesEditorWindow] = useState({
@@ -1257,6 +1814,15 @@
       });
       const [newPPTask, setNewPPTask] = useState('');
       const [ppContextMenu, setPpContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
+
+      // Phase 9 UI Refinement States
+      const [ppSplitRatio, setPpSplitRatio] = useState(50);
+      const [showNewTaskInput, setShowNewTaskInput] = useState(false);
+      const [newTaskText, setNewTaskText] = useState('');
+      const [showNewWarningInput, setShowNewWarningInput] = useState(false);
+      const [newWarningText, setNewWarningText] = useState('');
+      const [editingPPTask, setEditingPPTask] = useState(null);
+      const [editingPPTaskText, setEditingPPTaskText] = useState('');
 
       const [editorTarget, setEditorTarget] = useState({ type: 'parameter', id: null }); // type: 'parameter' | 'pp_task'
 
@@ -1927,6 +2493,16 @@
           });
         }
 
+        if (isMindMapOpen) {
+          windows.push({
+            id: 'mindmap',
+            title: 'Mind Map Hub',
+            icon: <Folder size={12} className="text-yellow-600 fill-yellow-600" />,
+            isMinimized: mindMapWindow.isMinimized,
+            isFocused: mindMapWindow.zIndex === maxZIndex
+          });
+        }
+
         return windows;
       };
 
@@ -1939,6 +2515,12 @@
           setMainWindowZ(newZ);
         } else if (id === 'editor') {
           setNotesEditorWindow(prev => ({
+            ...prev,
+            isMinimized: prev.zIndex === maxZIndex && !prev.isMinimized ? true : false,
+            zIndex: newZ
+          }));
+        } else if (id === 'mindmap') {
+          setMindMapWindow(prev => ({
             ...prev,
             isMinimized: prev.zIndex === maxZIndex && !prev.isMinimized ? true : false,
             zIndex: newZ
@@ -1993,6 +2575,19 @@
               >
                 <Settings size={36} className="text-white drop-shadow-md group-active:text-blue-300" />
                 <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
+              </div>
+
+              <div
+                className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group mt-4"
+                onDoubleClick={() => {
+                  setIsMindMapOpen(true);
+                  const newZ = maxZIndex + 1;
+                  setMindMapWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
+                  setMaxZIndex(newZ);
+                }}
+              >
+                <Folder size={36} className="text-yellow-400 drop-shadow-md group-active:text-yellow-200 fill-yellow-400" />
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
               </div>
             </div>
 
@@ -2307,11 +2902,24 @@
                         </div>
                       </div>
 
-                      <div className="flex-1 flex flex-col min-h-0 gap-3">
+                      <div className="flex-1 flex flex-col min-h-0 relative">
                         {/* TASKS SECTION (Now on top) */}
-                        <div className="flex-[2] flex flex-col min-h-0">
-                          <span className="font-bold text-blue-800 text-xs border-b border-gray-400 mb-1">VALIDATION TASKS</span>
+                        <div className="flex flex-col min-h-0 relative" style={{ height: `${ppSplitRatio}%` }}>
+                          <div className="flex justify-between items-center border-b border-gray-400 mb-1">
+                            <span className="font-bold text-blue-800 text-xs">VALIDATION TASKS</span>
+                            <button onClick={() => { setShowNewTaskInput(true); setTimeout(() => document.getElementById('newTaskInput')?.focus(), 100); }} className="text-[10px] text-blue-600 hover:text-blue-800 font-bold px-1">+ Add Task</button>
+                          </div>
                           <div className="flex-1 border border-gray-400 bg-white overflow-y-auto p-2 text-xs shadow-inner flex flex-col gap-2">
+                            {showNewTaskInput && (
+                              <div className="flex gap-2">
+                                <input id="newTaskInput" type="text" className="flex-1 border-2 border-gray-500 border-r-white border-b-white px-2 py-1 outline-none" placeholder="Task name..." value={newTaskText} onChange={e => setNewTaskText(e.target.value)} onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newTaskText.trim()) {
+                                    setPostProcessingTasks(prev => { const n = [...prev, { id: Date.now().toString(), type: 'task', text: newTaskText.trim(), details: '', done: false }]; localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                    setNewTaskText(''); setShowNewTaskInput(false);
+                                  } else if (e.key === 'Escape') { setShowNewTaskInput(false); setNewTaskText(''); }
+                                }} onBlur={() => { if (!newTaskText) setShowNewTaskInput(false); }} />
+                              </div>
+                            )}
                             {postProcessingTasks.filter(t => t.type === 'task' && (t.text.toLowerCase().includes(ppSearchText.toLowerCase()) || (t.details && t.details.toLowerCase().includes(ppSearchText.toLowerCase())))).map(t => (
                               <div key={t.id} className="p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer shadow-sm relative group" style={{ backgroundColor: t.color || '#fdfdfd' }}
                                 onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId: t.id }); }}
@@ -2325,7 +2933,19 @@
                                     });
                                   }} />
                                   <div className="flex flex-col flex-1 min-w-0">
-                                    <span className={`font-bold ${t.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>{t.text}</span>
+                                    {editingPPTask === t.id ? (
+                                      <input autoFocus type="text" className="border-2 border-gray-500 border-r-white border-b-white px-1 outline-none font-bold" value={editingPPTaskText} onChange={e => setEditingPPTaskText(e.target.value)} onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          setPostProcessingTasks(prev => { const n = prev.map(pt => pt.id === t.id ? { ...pt, text: editingPPTaskText || pt.text } : pt); localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                          setEditingPPTask(null);
+                                        } else if (e.key === 'Escape') setEditingPPTask(null);
+                                      }} onBlur={() => {
+                                        setPostProcessingTasks(prev => { const n = prev.map(pt => pt.id === t.id ? { ...pt, text: editingPPTaskText || pt.text } : pt); localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                        setEditingPPTask(null);
+                                      }} />
+                                    ) : (
+                                      <span className={`font-bold ${t.done ? 'line-through text-gray-400' : 'text-gray-800'}`}>{t.text}</span>
+                                    )}
                                     {t.details && <div className="text-[10px] text-gray-500 mt-1 line-clamp-2 truncate" dangerouslySetInnerHTML={{ __html: t.details.replace(/<[^>]+>/g, ' ').substring(0, 100) }} />}
                                   </div>
                                 </div>
@@ -2335,60 +2955,66 @@
                           </div>
                         </div>
 
+                        {/* DRAGGABLE SPLITTER */}
+                        <div className="h-2 bg-gray-300 hover:bg-gray-400 cursor-row-resize my-1 shrink-0 rounded"
+                          onPointerDown={(e) => {
+                            const container = e.currentTarget.parentElement;
+                            const rect = container.getBoundingClientRect();
+                            const moveHandler = (moveEvent) => {
+                              const y = moveEvent.clientY - rect.top;
+                              let newRatio = (y / rect.height) * 100;
+                              newRatio = Math.max(10, Math.min(90, newRatio));
+                              setPpSplitRatio(newRatio);
+                            };
+                            const upHandler = () => {
+                              document.removeEventListener('pointermove', moveHandler);
+                              document.removeEventListener('pointerup', upHandler);
+                            };
+                            document.addEventListener('pointermove', moveHandler);
+                            document.addEventListener('pointerup', upHandler);
+                          }}
+                        />
+
                         {/* WARNINGS SECTION (Now on bottom) */}
-                        <div className="flex-[1] flex flex-col min-h-0">
-                          <span className="font-bold text-red-700 text-xs border-b border-gray-400 mb-1">WARNINGS & ERRORS</span>
-                          <div className="flex-1 border border-gray-400 bg-white overflow-y-auto p-1 text-xs shadow-inner">
+                        <div className="flex flex-col min-h-0" style={{ height: `calc(${100 - ppSplitRatio}% - 12px)` }}>
+                          <div className="flex justify-between items-center border-b border-gray-400 mb-1">
+                            <span className="font-bold text-red-700 text-xs">WARNINGS & ERRORS</span>
+                            <button onClick={() => { setShowNewWarningInput(true); setTimeout(() => document.getElementById('newWarnInput')?.focus(), 100); }} className="text-[10px] text-red-700 hover:text-red-900 font-bold px-1">+ Add Warning</button>
+                          </div>
+                          <div className="flex-1 border border-gray-400 bg-white overflow-y-auto p-1 text-xs shadow-inner flex flex-col">
+                            {showNewWarningInput && (
+                              <div className="flex gap-2 p-1 border-b border-gray-200">
+                                <input id="newWarnInput" type="text" className="flex-1 border-2 border-gray-500 border-r-white border-b-white px-2 py-1 outline-none" placeholder="Warning text..." value={newWarningText} onChange={e => setNewWarningText(e.target.value)} onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newWarningText.trim()) {
+                                    setPostProcessingTasks(prev => { const n = [...prev, { id: Date.now().toString(), type: 'warning', text: newWarningText.trim(), details: '' }]; localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                    setNewWarningText(''); setShowNewWarningInput(false);
+                                  } else if (e.key === 'Escape') { setShowNewWarningInput(false); setNewWarningText(''); }
+                                }} onBlur={() => { if (!newWarningText) setShowNewWarningInput(false); }} />
+                              </div>
+                            )}
                             {postProcessingTasks.filter(t => t.type === 'warning' && (t.text.toLowerCase().includes(ppSearchText.toLowerCase()) || (t.details && t.details.toLowerCase().includes(ppSearchText.toLowerCase())))).map(t => (
                               <div key={t.id} className="p-1.5 mb-1 hover:bg-gray-100 cursor-pointer border-b border-gray-200" style={{ backgroundColor: t.color || 'transparent' }}
                                 onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId: t.id }); }}
                               >
-                                <span className="text-red-800 font-bold mr-1">!</span> <span className="font-semibold text-gray-800">{t.text}</span>
+                                <span className="text-red-800 font-bold mr-1">!</span>
+                                {editingPPTask === t.id ? (
+                                  <input autoFocus type="text" className="border-2 border-gray-500 border-r-white border-b-white px-1 outline-none font-semibold flex-1 ml-1" value={editingPPTaskText} onChange={e => setEditingPPTaskText(e.target.value)} onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      setPostProcessingTasks(prev => { const n = prev.map(pt => pt.id === t.id ? { ...pt, text: editingPPTaskText || pt.text } : pt); localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                      setEditingPPTask(null);
+                                    } else if (e.key === 'Escape') setEditingPPTask(null);
+                                  }} onBlur={() => {
+                                    setPostProcessingTasks(prev => { const n = prev.map(pt => pt.id === t.id ? { ...pt, text: editingPPTaskText || pt.text } : pt); localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n)); return n; });
+                                    setEditingPPTask(null);
+                                  }} />
+                                ) : (
+                                  <span className="font-semibold text-gray-800">{t.text}</span>
+                                )}
                               </div>
                             ))}
                             {postProcessingTasks.filter(t => t.type === 'warning' && (t.text.toLowerCase().includes(ppSearchText.toLowerCase()) || (t.details && t.details.toLowerCase().includes(ppSearchText.toLowerCase())))).length === 0 && <div className="text-gray-400 italic">No matching warnings.</div>}
                           </div>
                         </div>
-                      </div>
-
-                      <div className="flex gap-2 mt-2">
-                        <input
-                          type="text"
-                          className="flex-1 border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
-                          placeholder="Type item title..."
-                          value={newPPTask}
-                          onChange={(e) => setNewPPTask(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && newPPTask.trim()) {
-                              setPostProcessingTasks(prev => {
-                                const n = [...prev, { id: Date.now().toString(), type: 'task', text: newPPTask.trim(), details: '', done: false }];
-                                localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                                return n;
-                              });
-                              setNewPPTask('');
-                            }
-                          }}
-                        />
-                        <button className="px-3 py-1 bg-[#e0ffe0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-xs font-bold text-green-900" onClick={() => {
-                          if (newPPTask.trim()) {
-                            setPostProcessingTasks(prev => {
-                              const n = [...prev, { id: Date.now().toString(), type: 'task', text: newPPTask.trim(), details: '', done: false }];
-                              localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                              return n;
-                            });
-                            setNewPPTask('');
-                          }
-                        }}>+ Task</button>
-                        <button className="px-3 py-1 bg-[#ffe0e0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white text-xs font-bold text-red-900" onClick={() => {
-                          if (newPPTask.trim()) {
-                            setPostProcessingTasks(prev => {
-                              const n = [...prev, { id: Date.now().toString(), type: 'warning', text: newPPTask.trim(), details: '' }];
-                              localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                              return n;
-                            });
-                            setNewPPTask('');
-                          }
-                        }}>+ Warning</button>
                       </div>
 
                       {/* PP Context Menu */}
@@ -2412,13 +3038,10 @@
                           <div className="border-t border-gray-300"></div>
                           <button className="text-left px-3 py-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                             onClick={() => {
-                              const newName = window.prompt("Rename item:");
-                              if (newName) {
-                                setPostProcessingTasks(prev => {
-                                  const n = prev.map(t => t.id === ppContextMenu.taskId ? { ...t, text: newName } : t);
-                                  localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                                  return n;
-                                });
+                              const task = postProcessingTasks.find(t => t.id === ppContextMenu.taskId);
+                              if (task) {
+                                setEditingPPTask(task.id);
+                                setEditingPPTaskText(task.text);
                               }
                               setPpContextMenu(prev => ({ ...prev, visible: false }));
                             }}
@@ -2538,9 +3161,9 @@
                   width={800}
                   height={600}
                   maxHeight={2000}
-                  hideBorders={true} // New prop hint to render flatter if supported, otherwise styling below fixes it
+                  allowOverflow={true}
                 >
-                  <div className="w-full h-full flex flex-col bg-[#f3f4f6] font-sans rounded-b-lg overflow-hidden" >
+                  <div className="w-full h-full flex flex-col bg-[#f3f4f6] font-sans rounded-b-lg overflow-visible" >
 
                     {/* Modern Header */}
                     <div className="flex items-center px-6 py-4 bg-white border-b shadow-sm gap-4 shrink-0 z-20">
@@ -2626,6 +3249,29 @@
                 </DraggableWindow>
               )
             }
+
+            {/* Mind Map Window */}
+            {isMindMapOpen && (
+              <DraggableWindow
+                id="mindmap"
+                title={<><Folder size={14} className="inline mr-1 text-yellow-500 fill-yellow-500" /> Mind Map Hub</>}
+                initialPos={mindMapWindow.pos}
+                zIndex={mindMapWindow.zIndex}
+                width={800} height={600}
+                isMinimized={mindMapWindow.isMinimized}
+                onMinimize={() => setMindMapWindow(prev => ({ ...prev, isMinimized: true }))}
+                isMaximized={mindMapWindow.isMaximized}
+                onMaximize={() => setMindMapWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
+                onClose={() => setIsMindMapOpen(false)}
+                onFocus={() => {
+                  const newZ = maxZIndex + 1;
+                  setMaxZIndex(newZ);
+                  setMindMapWindow(prev => ({ ...prev, zIndex: newZ }));
+                }}
+              >
+                <MindMapCanvas />
+              </DraggableWindow>
+            )}
 
             {/* Render Bottom Taskbar */}
             <TaskBar windows={getTaskbarWindows()} onWindowClick={handleTaskbarClick} />
