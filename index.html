@@ -143,20 +143,68 @@
       height: 20px !important;
     }
 
-    .mindmap-node-editor .ql-toolbar .ql-picker {
+    .mindmap-node-editor .ql-toolbar .ql-picker-label {
       height: 20px !important;
+      line-height: 18px !important;
+    }
+
+    .ql-snow .ql-picker-options {
+      z-index: 10000 !important;
+    }
+
+    /* Toolbar auto-hiding and floating above node */
+    .mindmap-node-editor .ql-toolbar {
+      display: none !important;
+    }
+
+    .mindmap-node-editor.active-editor {
+      overflow: visible !important;
+    }
+
+    .mindmap-node-editor.active-editor .ql-toolbar {
+      display: flex !important;
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      margin-bottom: 6px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2) !important;
+      white-space: nowrap;
+      z-index: 9999;
+      width: max-content;
+      max-width: 500px;
     }
 
     .mindmap-node-editor .ql-container {
       border: none !important;
       flex: 1;
-      overflow-y: auto;
+      overflow: visible !important;
       min-height: 40px;
     }
 
     .mindmap-node-editor .ql-editor {
       padding: 4px 6px;
       font-size: 11px;
+    }
+
+    /* Custom Notebook Editor Styles */
+    .custom-quill-editor .ql-toolbar {
+      border: none !important;
+      border-bottom: 1px solid #e5e7eb !important;
+      background: #f8fafc;
+      padding: 12px;
+    }
+
+    .custom-quill-editor .ql-container {
+      border: none !important;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .custom-quill-editor .ql-editor {
+      min-height: 400px;
     }
   </style>
   <!-- React and ReactDOM UMD -->
@@ -167,6 +215,9 @@
   <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
   <!-- ReactQuill UMD -->
   <script src="https://cdn.jsdelivr.net/npm/react-quill@2.0.0/dist/react-quill.min.js"></script>
+  <!-- KaTeX for formula module -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
 </head>
 
 <body>
@@ -1924,6 +1975,37 @@
         setNotesEditorWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
       }, [maxZIndex]);
 
+      // Global Quick Note Auto-saver for parameter and PP tasks
+      const editorAutoSaveRef = useRef(null);
+      useEffect(() => {
+        if (!isEditorOpen || !editorTarget.id) return;
+        if (editorAutoSaveRef.current) clearTimeout(editorAutoSaveRef.current);
+        editorAutoSaveRef.current = setTimeout(() => {
+          if (editorTarget.type === 'parameter') {
+            setParameterNotes(prev => ({ ...prev, [editorTarget.id]: tempNote }));
+            // Users natively access their notes through parameterNotes mapping or we can save silently to treeData here
+            setTreeData(prev => {
+              const updateFieldNote = (nodes) => {
+                return nodes.map(n => {
+                  const newRows = n.rows ? n.rows.map(r => r.map(c => c.label === editorTarget.id ? { ...c, quickNote: tempNote } : c)) : undefined;
+                  const updatedNode = newRows ? { ...n, rows: newRows } : n;
+                  if (updatedNode.children) return { ...updatedNode, children: updateFieldNote(updatedNode.children) };
+                  return updatedNode;
+                });
+              };
+              return updateFieldNote(prev);
+            });
+          } else if (editorTarget.type === 'pp_task') {
+            setPostProcessingTasks(prev => {
+              const n = prev.map(t => t.id === editorTarget.id ? { ...t, details: tempNote } : t);
+              localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
+              return n;
+            });
+          }
+        }, 800);
+        return () => clearTimeout(editorAutoSaveRef.current);
+      }, [tempNote, isEditorOpen, editorTarget]);
+
       // Undo/Redo History for structural tree changes
       const undoStack = useRef([]);
       const redoStack = useRef([]);
@@ -3221,25 +3303,7 @@
                   }}
                   onClose={() => {
                     setIsEditorOpen(false);
-                    if (editorTarget.type === 'parameter') {
-                      setTreeData(prev => {
-                        const updateFieldNote = (nodes) => {
-                          return nodes.map(n => {
-                            const newRows = n.rows ? n.rows.map(r => r.map(c => c.label === selectedParameter ? { ...c, quickNote: tempNote } : c)) : undefined;
-                            const updatedNode = newRows ? { ...n, rows: newRows } : n;
-                            if (updatedNode.children) return { ...updatedNode, children: updateFieldNote(updatedNode.children) };
-                            return updatedNode;
-                          });
-                        };
-                        return updateFieldNote(prev);
-                      });
-                    } else if (editorTarget.type === 'pp_task') {
-                      setPostProcessingTasks(prev => {
-                        const n = prev.map(t => t.id === editorTarget.id ? { ...t, details: tempNote } : t);
-                        localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                        return n;
-                      });
-                    }
+                    // Changes are fully auto-saved below
                   }}
                   isMinimized={notesEditorWindow.isMinimized}
                   onMinimize={() => setNotesEditorWindow(prev => ({ ...prev, isMinimized: true }))}
@@ -3274,38 +3338,15 @@
                       </div>
                       <div className="ml-auto flex items-center gap-3">
                         <span className="text-xs text-gray-400">Zoom: {editorZoom}%</span>
-                        <button
-                          className="px-4 py-2 rounded text-gray-600 hover:bg-gray-100 font-medium transition-colors border border-gray-200"
-                          onClick={() => setIsEditorOpen(false)}
-                        >
-                          Discard
-                        </button>
+                        <div className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded shadow-inner border border-green-200">Auto-saved</div>
                         <button
                           className="px-6 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm transition-colors"
                           onClick={() => {
-                            setIsEditorOpen(false);
-                            if (editorTarget.type === 'parameter') {
-                              setTreeData(prev => {
-                                const updateFieldNote = (nodes) => {
-                                  return nodes.map(n => {
-                                    const newRows = n.rows ? n.rows.map(r => r.map(c => c.label === selectedParameter ? { ...c, quickNote: tempNote } : c)) : undefined;
-                                    const updatedNode = newRows ? { ...n, rows: newRows } : n;
-                                    if (updatedNode.children) return { ...updatedNode, children: updateFieldNote(updatedNode.children) };
-                                    return updatedNode;
-                                  });
-                                };
-                                return updateFieldNote(prev);
-                              });
-                            } else if (editorTarget.type === 'pp_task') {
-                              setPostProcessingTasks(prev => {
-                                const n = prev.map(t => t.id === editorTarget.id ? { ...t, details: tempNote } : t);
-                                localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
-                                return n;
-                              });
-                            }
+                            // ReactQuill sometimes crashes if unmounted synchronously while focused. Timeout helps cleanly blur.
+                            setTimeout(() => setIsEditorOpen(false), 20);
                           }}
                         >
-                          Save Page
+                          Close Page
                         </button>
                       </div>
                     </div>
