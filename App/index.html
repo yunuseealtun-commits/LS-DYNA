@@ -230,38 +230,68 @@
 
     // We use vanilla Quill.js to avoid React lifecycle crashes
     const VanillaQuillEditor = ({ value, onChange, placeholder, modules, className, autoFocus }) => {
-      const editorRef = useRef(null);
+      const containerRef = useRef(null);
       const quillInstance = useRef(null);
+      const isInternalChange = useRef(false);
 
       useEffect(() => {
-        if (!editorRef.current) return;
-        if (!quillInstance.current) {
-          quillInstance.current = new window.Quill(editorRef.current, {
-            theme: 'snow',
-            modules: modules || { toolbar: false },
-            placeholder: placeholder || ''
-          });
+        if (!containerRef.current) return;
 
-          quillInstance.current.on('text-change', () => {
-            const html = editorRef.current.querySelector('.ql-editor').innerHTML;
-            onChange(html);
-          });
+        // Clean up any existing content just in case
+        containerRef.current.innerHTML = '';
 
-          if (autoFocus) {
-            setTimeout(() => quillInstance.current.focus(), 100);
-          }
+        // Create a wrapper for Quill to attach to
+        const editorDiv = document.createElement('div');
+        editorDiv.className = 'flex-1 min-h-[150px] bg-white';
+        containerRef.current.appendChild(editorDiv);
+
+        quillInstance.current = new window.Quill(editorDiv, {
+          theme: 'snow',
+          modules: modules || { toolbar: false },
+          placeholder: placeholder || ''
+        });
+
+        // Set initial value quietly
+        if (value) {
+          quillInstance.current.clipboard.dangerouslyPasteHTML(value);
         }
 
-        // Prevent cursor jumping while typing by only updating if content heavily mismatches (like tab switch)
-        const currentHtml = editorRef.current.querySelector('.ql-editor').innerHTML;
+        quillInstance.current.on('text-change', () => {
+          isInternalChange.current = true;
+          const html = quillInstance.current.root.innerHTML;
+          onChange(html);
+        });
+
+        if (autoFocus) {
+          setTimeout(() => quillInstance.current.focus(), 150);
+        }
+
+        // Cleanup function for when React unmounts the tab
+        return () => {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = ''; // This wipes the editor AND the orphaned toolbar Quill injected
+          }
+          quillInstance.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []); // Only run once on mount
+
+      // Listen to external value changes (like undo/redo or database loads)
+      useEffect(() => {
+        if (!quillInstance.current) return;
+        // Avoid overwriting if we just caused the change
+        if (isInternalChange.current) {
+          isInternalChange.current = false;
+          return;
+        }
+        const currentHtml = quillInstance.current.root.innerHTML;
         if (value !== undefined && value !== currentHtml) {
-          // Avoid overwriting a '<p><br></p>' with empty string and causing selection reset
           if (value === '' && currentHtml === '<p><br></p>') return;
           quillInstance.current.clipboard.dangerouslyPasteHTML(value);
         }
-      }, [value, modules, autoFocus]);
+      }, [value]);
 
-      return <div className={className} ref={editorRef} />;
+      return <div className={`flex flex-col ${className}`} ref={containerRef} />;
     };
 
     const initialTreeData = [
