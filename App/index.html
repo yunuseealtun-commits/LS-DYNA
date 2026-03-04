@@ -1336,8 +1336,30 @@
       const onContextMenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({ visible: true, x: e.pageX, y: e.pageY, nodeId: item.id });
+        setContextMenu({ visible: true, x: e.clientX, y: e.clientY, nodeId: item.id });
         setSelectedNode(item.id);
+      };
+
+      const longPressTimer = React.useRef(null);
+
+      const handleTouchStart = (e) => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+        if (e.touches && e.touches.length === 1) {
+          const touch = e.touches[0];
+          const px = touch.clientX;
+          const py = touch.clientY;
+          longPressTimer.current = setTimeout(() => {
+            setContextMenu({ visible: true, x: px, y: py, nodeId: item.id });
+            setSelectedNode(item.id);
+          }, 500);
+        }
+      };
+
+      const cancelLongPress = () => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
       };
 
 
@@ -1356,7 +1378,14 @@
       };
 
       return (
-        <div className="relative font-mono text-sm select-none" onContextMenu={onContextMenu} >
+        <div
+          className="relative font-mono text-sm select-none"
+          onContextMenu={onContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchMove={cancelLongPress}
+          onTouchEnd={cancelLongPress}
+          onTouchCancel={cancelLongPress}
+        >
           {dragOverInfo?.id === item.id && dragOverInfo.position === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
           {dragOverInfo?.id === item.id && dragOverInfo.position === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
           <div
@@ -1645,7 +1674,7 @@
                                               onContextMenu={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setParamContextMenu({ visible: true, x: e.pageX, y: e.pageY, paramName: field.label, nodeId: editingNode.id, rowIdx, colIdx });
+                                                setParamContextMenu({ visible: true, x: e.clientX, y: e.clientY, paramName: field.label, nodeId: editingNode.id, rowIdx, colIdx });
                                               }}
                                             > {field.label} </span>
                                             {tags.map((t, i) => <span key={i} className="text-[8px] bg-yellow-200 text-yellow-800 px-1 rounded border border-yellow-300 truncate shrink-0" title={t}>{t}</span>)}
@@ -3137,7 +3166,7 @@
                             )}
                             {postProcessingTasks.filter(t => t.type === 'task' && (t.text.toLowerCase().includes(ppSearchText.toLowerCase()) || (t.details && t.details.toLowerCase().includes(ppSearchText.toLowerCase())))).map(t => (
                               <div key={t.id} className="p-2 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer shadow-sm relative group" style={{ backgroundColor: t.color || '#fdfdfd' }}
-                                onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId: t.id }); }}
+                                onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.clientX, y: e.clientY, taskId: t.id }); }}
                               >
                                 <div className="flex items-start gap-2">
                                   <input type="checkbox" checked={t.done} className="mt-0.5 cursor-pointer" onChange={() => {
@@ -3209,7 +3238,7 @@
                             )}
                             {postProcessingTasks.filter(t => t.type === 'warning' && (t.text.toLowerCase().includes(ppSearchText.toLowerCase()) || (t.details && t.details.toLowerCase().includes(ppSearchText.toLowerCase())))).map(t => (
                               <div key={t.id} className="p-1.5 mb-1 hover:bg-gray-100 cursor-pointer border-b border-gray-200" style={{ backgroundColor: t.color || 'transparent' }}
-                                onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.pageX, y: e.pageY, taskId: t.id }); }}
+                                onContextMenu={(e) => { e.preventDefault(); setPpContextMenu({ visible: true, x: e.clientX, y: e.clientY, taskId: t.id }); }}
                               >
                                 <span className="text-red-800 font-bold mr-1">!</span>
                                 {editingPPTask === t.id ? (
