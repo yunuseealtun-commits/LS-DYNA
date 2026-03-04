@@ -305,7 +305,7 @@
             </span>
             < div className="flex gap-1" onPointerDown={e => e.stopPropagation()} >
               {onMinimize && (
-                <button onClick={onMinimize} className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none active:border-gray-600 active:border-r-white active:border-b-white" > _ </button>
+                <button onClick={onMinimize} className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold leading-none active:border-gray-600 active:border-r-white active:border-b-white" > <Minus size={12} strokeWidth={3} /> </button>
               )}
               {onMaximize && (
                 <button onClick={onMaximize} className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold text-xs leading-none active:border-gray-600 active:border-r-white active:border-b-white" > <Square size={8} /></button >
@@ -2789,7 +2789,7 @@
                     setParamContextMenu(prev => ({ ...prev, visible: false }));
                   }}
                 >
-                  <Settings size={10} /> Rename (F2)
+                  <Type size={10} /> Rename (F2)
                 </button>
 
                 <div className="border-t border-gray-300 my-1"></div>
@@ -2906,7 +2906,7 @@
             {
               contextMenu.visible && (
                 <div
-                  className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-32 py-1 flex flex-col"
+                  className="fixed bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] w-48 py-1 flex flex-col font-sans whitespace-nowrap"
                   style={{ top: contextMenu.y, left: contextMenu.x }}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
@@ -2969,7 +2969,7 @@
                   < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                     onClick={() => handleStartRename(contextMenu.nodeId)}
                   >
-                    <FileText size={10} /> Rename (F2)
+                    <Type size={10} /> Rename (F2)
                   </button>
                   < button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                     onClick={() => handleDeleteNode(contextMenu.nodeId)}
@@ -3252,7 +3252,7 @@
                               setPpContextMenu(prev => ({ ...prev, visible: false }));
                             }}
                           >
-                            <Settings size={12} /> Rename
+                            <Type size={12} /> Rename
                           </button>
                           <div className="px-3 py-1 flex flex-col gap-1 border-t border-gray-300">
                             <span className="text-[10px] text-gray-600 font-bold">Highlight Color</span>
@@ -3344,7 +3344,7 @@
                 isMaximized={editorWindow.isMaximized}
                 onMaximize={() => setEditorWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
                 initialPos={{ x: 50, y: 50 }}
-                width={1000}
+                width={1400}
                 height={700}
                 maxHeight={2000}
                 allowOverflow={true}
