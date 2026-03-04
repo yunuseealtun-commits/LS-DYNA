@@ -1346,6 +1346,9 @@
         if (e.target.closest('button')) return; // Ignore expand clicks
         if (e.target.closest('input')) return; // Ignore inputs
 
+        // Let Right-Click (button 2) pass through to onContextMenu
+        if (e.button === 2) return;
+
         if (isRenaming) setRenamingNodeId(null);
 
         // Sadece seçme işlemi yap, açma işlemi tıkla değil
