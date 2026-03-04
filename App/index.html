@@ -1519,7 +1519,7 @@
     // ================= INPUT FORM COMPONENT =================
     const InputFormView = ({ editingNode: initialNode, onClose }) => {
       const {
-        parameterNotes, setParameterNotes, setIsEditorOpen, setTempNote,
+        parameterNotes, setParameterNotes,
         paramContextMenu, setParamContextMenu, miniQuillModules, setTreeData,
         selectedParameter, setSelectedParameter, handleOpenNotesEditor,
         treeData, findNodeById, quillModules, sidebarQuillModules, editorZoom
@@ -1842,19 +1842,8 @@
                         <button
                           className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
                           onClick={() => {
-                            let note = '';
-                            editingNode.rows.forEach(r => {
-                              r.forEach(c => {
-                                if (c.label === selectedParameter) {
-                                  note = c.quickNote || '';
-                                }
-                              });
-                            });
-                            setTempNote(note);
                             if (handleOpenNotesEditor) {
                               handleOpenNotesEditor(selectedParameter);
-                            } else {
-                              setIsEditorOpen(true);
                             }
                           }}
                         >
@@ -2808,13 +2797,13 @@
           });
         });
 
-        if (isEditorOpen) {
+        if (editorWindow.isVisible) {
           windows.push({
             id: 'editor',
-            title: `Notes: ${selectedParameter}`,
+            title: 'Tabbed Notes',
             icon: <FileText size={12} className="text-blue-600" />,
-            isMinimized: notesEditorWindow.isMinimized,
-            isFocused: notesEditorWindow.zIndex === maxZIndex
+            isMinimized: editorWindow.isMinimized,
+            isFocused: editorWindow.zIndex === maxZIndex
           });
         }
 
@@ -2871,7 +2860,6 @@
         draggedNodeId, setDraggedNodeId, dragOverInfo, setDragOverInfo,
         clipboard, setClipboard, contextMenu, setContextMenu,
         openForms, setOpenForms, maxZIndex, setMaxZIndex,
-        isEditorOpen, setIsEditorOpen, tempNote, setTempNote,
         paramContextMenu, setParamContextMenu, isSaving, setIsSaving,
         saveMessage, setSaveMessage, selectedParameter, setSelectedParameter,
         handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
