@@ -1341,6 +1341,7 @@
       };
 
       const longPressTimer = React.useRef(null);
+      const touchStartPos = React.useRef({ x: 0, y: 0 });
 
       const handleTouchStart = (e) => {
         if (longPressTimer.current) clearTimeout(longPressTimer.current);
@@ -1348,10 +1349,24 @@
           const touch = e.touches[0];
           const px = touch.clientX;
           const py = touch.clientY;
+          touchStartPos.current = { x: px, y: py };
           longPressTimer.current = setTimeout(() => {
             setContextMenu({ visible: true, x: px, y: py, nodeId: item.id });
             setSelectedNode(item.id);
+            longPressTimer.current = null;
           }, 500);
+        }
+      };
+
+      const handleTouchMove = (e) => {
+        if (!longPressTimer.current) return;
+        if (e.touches && e.touches.length === 1) {
+          const touch = e.touches[0];
+          const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+          const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+          if (dx > 10 || dy > 10) {
+            cancelLongPress();
+          }
         }
       };
 
@@ -1361,8 +1376,6 @@
           longPressTimer.current = null;
         }
       };
-
-
 
       const handleRowClick = (e) => {
         if (e.target.closest('button')) return; // Ignore expand clicks
@@ -1382,9 +1395,10 @@
           className="relative font-mono text-sm select-none"
           onContextMenu={onContextMenu}
           onTouchStart={handleTouchStart}
-          onTouchMove={cancelLongPress}
+          onTouchMove={handleTouchMove}
           onTouchEnd={cancelLongPress}
           onTouchCancel={cancelLongPress}
+          style={{ WebkitTouchCallout: 'none' }}
         >
           {dragOverInfo?.id === item.id && dragOverInfo.position === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
           {dragOverInfo?.id === item.id && dragOverInfo.position === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />}
@@ -2645,7 +2659,8 @@
       };
 
       useEffect(() => {
-        const closeMenu = () => {
+        const closeMenu = (e) => {
+          if (e && e.button === 2) return; // Prevent Right-Click from instantly closing the newly opened menu
           setContextMenu(prev => ({ ...prev, visible: false }));
           setParamContextMenu(prev => ({ ...prev, visible: false }));
         };
