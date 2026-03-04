@@ -240,6 +240,14 @@
         // Clean up any existing content just in case
         containerRef.current.innerHTML = '';
 
+        // Register inline styles for bulletproof formatting instead of failing CSS classes
+        const ColorStyle = window.Quill.import('attributors/style/color');
+        const BackgroundStyle = window.Quill.import('attributors/style/background');
+        const AlignStyle = window.Quill.import('attributors/style/align');
+        window.Quill.register(ColorStyle, true);
+        window.Quill.register(BackgroundStyle, true);
+        window.Quill.register(AlignStyle, true);
+
         // Create a wrapper for Quill to attach to
         const editorDiv = document.createElement('div');
         editorDiv.className = 'flex-1 min-h-[150px] bg-white';
@@ -472,9 +480,30 @@
       const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
       const windowRef = React.useRef(null);
+      // Track custom dimensions for native CSS resizing sync
+      const [customDims, setCustomDims] = useState({ w: width, h: height });
+      const isMaxRef = React.useRef(isMaximized);
+      isMaxRef.current = isMaximized;
 
-      // We removed the useEffect that set width/height via ref to prevent the "stuck" flash.
-      // Dimensions are now handled directly in the windowStyle object.
+      React.useLayoutEffect(() => {
+        if (!windowRef.current) return;
+        const observer = new ResizeObserver(entries => {
+          if (isMaxRef.current) return; // Don't track maximize transformations
+          for (let entry of entries) {
+            const newW = entry.borderBoxSize ? entry.borderBoxSize[0].inlineSize : entry.contentRect.width;
+            const newH = entry.borderBoxSize ? entry.borderBoxSize[0].blockSize : entry.contentRect.height;
+            if (newW && newH) {
+              // Only update if fundamentally changed by user dragging the resize handle
+              setCustomDims(prev => {
+                if (Math.abs(prev.w - newW) > 5 || Math.abs(prev.h - newH) > 5) return { w: newW, h: newH };
+                return prev;
+              });
+            }
+          }
+        });
+        observer.observe(windowRef.current);
+        return () => observer.disconnect();
+      }, []);
 
 
       const handlePointerDown = (e) => {
@@ -508,7 +537,7 @@
 
       const windowStyle = isMaximized
         ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 200 }
-        : { left: pos.x, top: pos.y, width: width ? (typeof width === 'number' ? `${width}px` : width) : undefined, height: height ? (typeof height === 'number' ? `${height}px` : height) : undefined, zIndex, minWidth: 200, minHeight, maxHeight };
+        : { left: pos.x, top: pos.y, width: customDims.w ? (typeof customDims.w === 'number' ? `${customDims.w}px` : customDims.w) : undefined, height: customDims.h ? (typeof customDims.h === 'number' ? `${customDims.h}px` : customDims.h) : undefined, zIndex, minWidth: 200, minHeight, maxHeight };
 
       return (
         <div
@@ -2086,8 +2115,9 @@
             setFileMenuOpen(false);
           }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        // Use pointerdown with capture to guarantee we catch the click before DraggableWindow stops propagation
+        document.addEventListener('pointerdown', handleClickOutside, { capture: true });
+        return () => document.removeEventListener('pointerdown', handleClickOutside, { capture: true });
       }, [fileMenuOpen]);
 
       // State to track unsaved changes (Dirty flag)
