@@ -1305,6 +1305,7 @@
                     {item.name}
                   </span>
                 )}
+              {item.applied && <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-1 py-0.5 rounded border border-green-300 font-bold shadow-sm whitespace-nowrap">✅ Applied</span>}
             </div>
           </div>
 
@@ -1852,6 +1853,9 @@
       const [newPPTask, setNewPPTask] = useState('');
       const [ppContextMenu, setPpContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
 
+      // Start Menu / File Menu State
+      const [fileMenuOpen, setFileMenuOpen] = useState(false);
+
       // Phase 9 UI Refinement States
       const [ppSplitRatio, setPpSplitRatio] = useState(50);
       const [showNewTaskInput, setShowNewTaskInput] = useState(false);
@@ -1940,6 +1944,48 @@
           });
         }
       }, []);
+
+      const exportKeywords = useCallback(() => {
+        let output = "=== LS-DYNA APPLIED KEYWORDS EXPORT ===\n\n";
+        let count = 0;
+
+        const traverse = (nodes) => {
+          nodes.forEach(n => {
+            if (n.applied) {
+              count++;
+              output += `*${n.name.replace(/^\*/, '')}\n`;
+              if (n.rows && n.rows.length > 0) {
+                n.rows.forEach((row) => {
+                  row.forEach(col => {
+                    if (col.label && col.label !== 'UNUSED') {
+                      output += `${col.label}: ${col.val} | `;
+                    }
+                  });
+                  output = output.slice(0, -3) + '\n';
+                });
+              }
+              output += '\n';
+            }
+            if (n.children) traverse(n.children);
+          });
+        };
+        traverse(treeData);
+
+        if (count === 0) {
+          alert("No keywords are currently marked as 'Applied'. Right-click a keyword in the tree to apply it.");
+          return;
+        }
+
+        const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `LS-DYNA_Applied_Keywords_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, [treeData]);
 
       const handleRedo = useCallback(() => {
         if (redoStack.current.length > 0) {
@@ -2881,6 +2927,25 @@
                     )
                   }
                   {
+                    (contextMenu.nodeId && findNodeById(treeData, contextMenu.nodeId)?.type !== 'group') && (
+                      <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                        onClick={() => {
+                          setTreeData(prev => {
+                            const toggleApplied = (nodes) => nodes.map(n => {
+                              if (n.id === contextMenu.nodeId) return { ...n, applied: !n.applied };
+                              if (n.children) return { ...n, children: toggleApplied(n.children) };
+                              return n;
+                            });
+                            return toggleApplied(prev);
+                          });
+                          setContextMenu({ visible: false, x: 0, y: 0, nodeId: null });
+                        }}
+                      >
+                        <Scan size={10} /> Toggle "Applied" Status
+                      </button>
+                    )
+                  }
+                  {
                     (contextMenu.nodeId && findNodeById(treeData, contextMenu.nodeId)?.type === 'group') && (
                       <button className="text-left px-3 py-1 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                         onClick={() => {
@@ -2939,8 +3004,30 @@
                 <div className="flex flex-col h-full bg-[#f0f0f0]" >
                   {/* Menu Bar */}
                   < div className="flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
-                    <div className="flex" >
-                      <span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > File </span>
+                    <div className="flex relative" >
+                      <span
+                        className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer relative"
+                        onClick={() => setFileMenuOpen(!fileMenuOpen)}
+                      >
+                        File
+                        {fileMenuOpen && (
+                          <div
+                            className="absolute top-full left-0 mt-1 bg-[#c0c0c0] text-black border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] min-w-[180px] py-1 flex flex-col font-sans text-xs font-normal"
+                            onPointerDown={e => e.stopPropagation()}
+                          >
+                            <button
+                              className="text-left px-4 py-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                exportKeywords();
+                                setFileMenuOpen(false);
+                              }}
+                            >
+                              <FileText size={12} /> Export Applied Keywords
+                            </button>
+                          </div>
+                        )}
+                      </span>
                       < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Edit </span>
                       < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > View </span>
                       < span className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer" > Help </span>
