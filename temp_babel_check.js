@@ -31,7 +31,8 @@
           quillInstance.current.clipboard.dangerouslyPasteHTML(value);
         }
 
-        quillInstance.current.on('text-change', () => {
+        quillInstance.current.on('text-change', (delta, oldDelta, source) => {
+          if (source !== 'user') return;
           isInternalChange.current = true;
           const html = quillInstance.current.root.innerHTML;
           onChange(html);
@@ -285,7 +286,7 @@
 
       const windowStyle = isMaximized
         ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 200 }
-        : { left: pos.x, top: pos.y, zIndex, minWidth: 200, minHeight, maxHeight };
+        : { left: pos.x, top: pos.y, width: width ? (typeof width === 'number' ? `${width}px` : width) : undefined, height: height ? (typeof height === 'number' ? `${height}px` : height) : undefined, zIndex, minWidth: 200, minHeight, maxHeight };
 
       return (
         <div
@@ -1856,6 +1857,38 @@
       // Start Menu / File Menu State
       const [fileMenuOpen, setFileMenuOpen] = useState(false);
 
+      // Key Manager State
+      const [isKeyManagerOpen, setIsKeyManagerOpen] = useState(false);
+      const [keyManagerWindow, setKeyManagerWindow] = useState({ isMinimized: false, isMaximized: false, zIndex: 13, pos: { x: 100, y: 100 } });
+      const [savedKeywordSets, setSavedKeywordSets] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('lsdyna_keyword_sets') || '[]'); } catch { return []; }
+      });
+      const [newSetName, setNewSetName] = useState('');
+      const [compareSetA, setCompareSetA] = useState('');
+      const [compareSetB, setCompareSetB] = useState('');
+
+      const getAppliedData = useCallback(() => {
+        const results = [];
+        const traverse = (nodes) => {
+          nodes.forEach(n => {
+            if (n.applied) {
+              const params = {};
+              if (n.rows) {
+                n.rows.forEach(r => r.forEach(c => {
+                  if (c.label && c.label !== 'UNUSED' && c.val) {
+                    params[c.label] = c.val;
+                  }
+                }));
+              }
+              results.push({ name: n.name, params });
+            }
+            if (n.children) traverse(n.children);
+          });
+        };
+        traverse(treeData);
+        return results;
+      }, [treeData]);
+
       // Phase 9 UI Refinement States
       const [ppSplitRatio, setPpSplitRatio] = useState(50);
       const [showNewTaskInput, setShowNewTaskInput] = useState(false);
@@ -3019,6 +3052,19 @@
                               className="text-left px-4 py-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                const newZ = maxZIndex + 1;
+                                setMaxZIndex(newZ);
+                                setIsKeyManagerOpen(true);
+                                setKeyManagerWindow(prev => ({ ...prev, zIndex: newZ, isMinimized: false }));
+                                setFileMenuOpen(false);
+                              }}
+                            >
+                              <Settings size={12} /> Applied Keywords Manager
+                            </button>
+                            <button
+                              className="text-left px-4 py-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 exportKeywords();
                                 setFileMenuOpen(false);
                               }}
@@ -3325,6 +3371,159 @@
                 </DraggableWindow>
               ))
             }
+            {/* Key Manager Overlay */}
+            <div style={{ display: isKeyManagerOpen ? 'block' : 'none' }}>
+              <DraggableWindow
+                id="keyManager"
+                title={<><Settings size={14} className="inline mr-1" /> Applied Keywords Manager</>}
+                zIndex={keyManagerWindow.zIndex}
+                onFocus={() => {
+                  const newZ = maxZIndex + 1;
+                  setMaxZIndex(newZ);
+                  setKeyManagerWindow(prev => ({ ...prev, zIndex: newZ }));
+                }}
+                onClose={() => setIsKeyManagerOpen(false)}
+                isMinimized={keyManagerWindow.isMinimized}
+                onMinimize={() => setKeyManagerWindow(prev => ({ ...prev, isMinimized: true }))}
+                isMaximized={keyManagerWindow.isMaximized}
+                onMaximize={() => setKeyManagerWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
+                initialPos={keyManagerWindow.pos}
+                width={800}
+                height={600}
+                allowOverflow={true}
+              >
+                <div className="w-full h-full flex flex-col bg-[#eef0f4] font-sans overflow-hidden p-2 text-sm" >
+                  <div className="flex gap-4 h-full min-h-0">
+                    {/* Left Panel: Saved Sets */}
+                    <div className="w-1/3 flex flex-col gap-2 border-r border-gray-400 pr-2 h-full">
+                      <div className="font-bold text-[#000080] border-b border-gray-300 pb-1 shrink-0">Kayıtlı Setler (Saved Configs)</div>
+                      <div className="flex flex-col gap-1 overflow-y-auto flex-1 bg-white p-1 border border-gray-300">
+                        {savedKeywordSets.length === 0 && <div className="text-gray-500 italic text-xs">Henüz kaydedilmiş bir set yok.</div>}
+                        {savedKeywordSets.map(set => (
+                          <div key={set.id} className="bg-gray-100 border border-gray-300 p-2 shadow-sm rounded flex flex-col gap-1 relative group shrink-0">
+                            <div className="font-semibold text-blue-900 leading-tight pr-4">{set.name}</div>
+                            <div className="text-[10px] text-gray-500">{new Date(set.date).toLocaleString()} • {set.data.length} Keywords</div>
+                            <button
+                              className="absolute top-1 right-1 hidden group-hover:block text-red-500 hover:bg-red-100 p-1 rounded"
+                              onClick={() => {
+                                if (window.confirm('Bu seti silmek istediğine emin misin?')) {
+                                  setSavedKeywordSets(prev => {
+                                    const next = prev.filter(s => s.id !== set.id);
+                                    localStorage.setItem('lsdyna_keyword_sets', JSON.stringify(next));
+                                    if (compareSetA === set.id) setCompareSetA('');
+                                    if (compareSetB === set.id) setCompareSetB('');
+                                    return next;
+                                  });
+                                }
+                              }}
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-gray-300 flex flex-col gap-1 shrink-0">
+                        <div className="text-xs text-gray-700 font-bold mb-1">Mevcut 'Applied' Durumunu Kaydet:</div>
+                        <input
+                          type="text"
+                          placeholder="Set Adı (Örn: Model V2)"
+                          className="border border-gray-400 p-1 text-sm w-full"
+                          value={newSetName}
+                          onChange={e => setNewSetName(e.target.value)}
+                        />
+                        <button
+                          className="bg-[#000080] text-white px-2 py-1 text-xs hover:bg-blue-800 shadow mt-1"
+                          onClick={() => {
+                            const data = getAppliedData();
+                            if (data.length === 0) return alert("Hiçbir keyword 'Applied' olarak işaretlenmemiş.");
+                            if (!newSetName.trim()) return alert("Lütfen bir set adı girin.");
+                            setSavedKeywordSets(prev => {
+                              const next = [...prev, { id: Date.now().toString(), name: newSetName.trim(), date: Date.now(), data }];
+                              localStorage.setItem('lsdyna_keyword_sets', JSON.stringify(next));
+                              return next;
+                            });
+                            setNewSetName('');
+                          }}
+                        >
+                          <Plus size={12} className="inline mr-1" /> Seti Kaydet
+                        </button>
+                      </div>
+                    </div>
+                    {/* Right Panel: Comparison Diff */}
+                    <div className="w-2/3 flex flex-col gap-2 pl-2 h-full">
+                      <div className="font-bold text-[#000080] border-b border-gray-300 pb-1 shrink-0">Karşılaştırma (Diff Viewer)</div>
+                      <div className="flex gap-2 shrink-0">
+                        <select className="flex-1 border border-gray-400 p-1 text-xs truncate" value={compareSetA} onChange={e => setCompareSetA(e.target.value)}>
+                          <option value="">-- Set A Seç --</option>
+                          {savedKeywordSets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <select className="flex-1 border border-gray-400 p-1 text-xs truncate" value={compareSetB} onChange={e => setCompareSetB(e.target.value)}>
+                          <option value="">-- Set B Seç --</option>
+                          {savedKeywordSets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex-1 bg-white border border-gray-400 overflow-y-auto p-2 text-xs font-mono">
+                        {(() => {
+                          if (!compareSetA || !compareSetB) return <div className="text-gray-500 italic mt-4 text-center">Karşılaştırma için iki farklı set seçin.</div>;
+                          if (compareSetA === compareSetB) return <div className="text-gray-500 italic mt-4 text-center">İki aynı seti karşılaştıramazsınız.</div>;
+
+                          const setAItem = savedKeywordSets.find(s => s.id === compareSetA);
+                          const setBItem = savedKeywordSets.find(s => s.id === compareSetB);
+
+                          const setA = setAItem?.data || [];
+                          const setB = setBItem?.data || [];
+
+                          // Collect all keyword names
+                          const allTitles = Array.from(new Set([...setA.map(a => a.name), ...setB.map(b => b.name)])).sort();
+                          let diffCount = 0;
+
+                          const elements = allTitles.map(title => {
+                            const kwA = setA.find(a => a.name === title);
+                            const kwB = setB.find(b => b.name === title);
+
+                            if (!kwA) { diffCount++; return <div key={title} className="mb-2 p-1 border border-green-300 bg-green-50"><strong className="text-green-700">+ {title.replace(/^\*/, '')}</strong> (Yalnızca Set B'de)</div>; }
+                            if (!kwB) { diffCount++; return <div key={title} className="mb-2 p-1 border border-red-300 bg-red-50"><strong className="text-red-700">- {title.replace(/^\*/, '')}</strong> (Yalnızca Set A'da)</div>; }
+
+                            // Both exist, check params
+                            const allParams = Array.from(new Set([...Object.keys(kwA.params), ...Object.keys(kwB.params)]));
+                            const diffs = [];
+                            allParams.forEach(p => {
+                              const valA = kwA.params[p];
+                              const valB = kwB.params[p];
+                              if (valA !== valB) diffs.push({ param: p, a: valA || '(boş)', b: valB || '(boş)' });
+                            });
+
+                            if (diffs.length === 0) return null; // Identical
+
+                            diffCount++;
+                            return (
+                              <div key={title} className="mb-2 border border-orange-300 bg-orange-50 p-1">
+                                <strong className="text-[#000080]">~ {title.replace(/^\*/, '')}</strong>
+                                <div className="ml-4 mt-1 flex flex-col gap-0.5">
+                                  {diffs.map((d, i) => (
+                                    <div key={i} className="flex gap-2 bg-white px-1 py-0.5 border border-gray-200">
+                                      <span className="w-20 font-bold shrink-0">{d.param}:</span>
+                                      <span className="text-red-600 line-through bg-red-100 flex-1 truncate px-1" title={d.a}>{d.a}</span>
+                                      <span className="text-green-700 bg-green-100 flex-1 px-1 break-all" title={d.b}>{d.b}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          });
+
+                          if (diffCount === 0) {
+                            return <div className="text-green-600 font-bold text-center mt-4">✅ İki set birbiriyle tamamen aynı. Hiçbir fark yok.</div>;
+                          }
+                          return elements;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </DraggableWindow>
+            </div>
+
             {/* Tabbed Editor Overlay */}
             <div style={{ display: editorWindow.isVisible ? 'block' : 'none' }}>
               <DraggableWindow
