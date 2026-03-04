@@ -473,12 +473,9 @@
 
       const windowRef = React.useRef(null);
 
-      useEffect(() => {
-        if (windowRef.current) {
-          if (width) windowRef.current.style.width = typeof width === 'number' ? `${width}px` : width;
-          if (height) windowRef.current.style.height = typeof height === 'number' ? `${height}px` : height;
-        }
-      }, []);
+      // We removed the useEffect that set width/height via ref to prevent the "stuck" flash.
+      // Dimensions are now handled directly in the windowStyle object.
+
 
       const handlePointerDown = (e) => {
         setDragOffset({ x: e.clientX - pos.x, y: e.clientY - pos.y });
@@ -2082,6 +2079,21 @@
       // Start Menu / File Menu State
       const [fileMenuOpen, setFileMenuOpen] = useState(false);
 
+      // Auto-close File menu when clicking outside
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (fileMenuOpen && !e.target.closest('.file-menu-container')) {
+            setFileMenuOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, [fileMenuOpen]);
+
+      // State to track unsaved changes (Dirty flag)
+      const [isDirty, setIsDirty] = useState(false);
+      const [lastSaved, setLastSaved] = useState(null);
+
       // Key Manager State
       const [isKeyManagerOpen, setIsKeyManagerOpen] = useState(false);
       const [keyManagerWindow, setKeyManagerWindow] = useState({ isMinimized: false, isMaximized: false, zIndex: 13, pos: { x: 100, y: 100 } });
@@ -2151,6 +2163,7 @@
 
       // Bulletproof auto-saver for the active editor tab
       const handleEditorChange = useCallback((html) => {
+        setIsDirty(true);
         const activeTab = editorTabs.find(t => t.id === activeTabId);
         if (!activeTab) return;
 
@@ -2160,6 +2173,8 @@
             const newNotes = { ...prev, [activeTab.id]: html };
             // Robust crash-proof local storage
             localStorage.setItem('lsdyna_param_notes', JSON.stringify(newNotes));
+            setLastSaved(new Date().toLocaleTimeString());
+            setIsDirty(false); // Saved to local storage immediately
             return newNotes;
           });
 
@@ -2179,6 +2194,8 @@
           setPostProcessingTasks(prev => {
             const n = prev.map(t => t.id === activeTab.id ? { ...t, details: html } : t);
             localStorage.setItem('lsdyna_pp_tasks', JSON.stringify(n));
+            setLastSaved(new Date().toLocaleTimeString());
+            setIsDirty(false);
             return n;
           });
         }
@@ -2561,7 +2578,7 @@
             ['blockquote', 'code-block'],
             ['link', 'image', 'video', 'formula'],
             ['clean'],
-            ['insertTable'] // Custom button
+            ['insertTable']
           ],
           handlers: {
             'insertTable': function () {
@@ -3262,7 +3279,7 @@
                 <div className="flex flex-col h-full bg-[#f0f0f0]" >
                   {/* Menu Bar */}
                   < div className="flex px-1 py-0.5 border-b border-gray-400 text-black mb-1 justify-between items-center" >
-                    <div className="flex relative" >
+                    <div className="flex relative file-menu-container" >
                       <span
                         className="px-2 hover:bg-[#000080] hover:text-white cursor-pointer relative"
                         onClick={() => setFileMenuOpen(!fileMenuOpen)}
@@ -3753,7 +3770,18 @@
             <div style={{ display: editorWindow.isVisible ? 'block' : 'none' }}>
               <DraggableWindow
                 id="editor"
-                title={<><FileText size={14} className="inline mr-1 text-blue-500" /> Tabbed Notes</>}
+                title={(
+                  <div className="flex justify-between items-center w-full pr-8">
+                    <div className="flex items-center gap-1">
+                      <FileText size={14} className="text-blue-500" /> Tabbed Notes
+                    </div>
+                    {lastSaved && (
+                      <div className="text-[10px] font-normal bg-blue-900/30 px-2 py-0.5 rounded flex items-center gap-1">
+                        <span className="opacity-70">Oto-kayıt:</span> {lastSaved}
+                      </div>
+                    )}
+                  </div>
+                )}
                 zIndex={editorWindow.zIndex}
                 onFocus={() => {
                   const newZ = maxZIndex + 1;
@@ -3761,6 +3789,11 @@
                   setEditorWindow(prev => ({ ...prev, zIndex: newZ }));
                 }}
                 onClose={() => {
+                  if (isDirty) {
+                    if (!window.confirm("Kaydedilmemiş değişiklikleriniz olabilir. Yine de kapatmak istiyor musunuz?")) return;
+                  }
+                  setEditorTabs([]);
+                  setActiveTabId(null);
                   setEditorWindow(prev => ({ ...prev, isVisible: false }));
                 }}
                 isMinimized={editorWindow.isMinimized}
