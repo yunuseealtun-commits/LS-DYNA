@@ -43,7 +43,59 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        if parsed_url.path == '/api/data' and not route:
+        if route == 'drive_callback' or parsed_url.path == '/api/drive/callback':
+            try:
+                import sys
+                app_dir = os.path.join(os.path.dirname(DB_DIR), 'App')
+                if app_dir not in sys.path:
+                    sys.path.append(app_dir)
+                from google_drive import GoogleDriveManager
+                drive_manager = GoogleDriveManager(
+                    credentials_path=os.path.join(app_dir, 'credentials.json'),
+                    tokens_dir=os.path.join(app_dir, 'tokens')
+                )
+                
+                # Reconstruct full callback URL
+                protocol = self.headers.get('x-forwarded-proto', 'http')
+                host = self.headers.get('host', 'localhost:3001')
+                full_url = f"{protocol}://{host}{self.path}"
+                redirect_uri = f"{protocol}://{host}/api/drive/callback"
+                if "vercel.app" in host:
+                    redirect_uri = f"https://{host}/api/drive/callback"
+                
+                user_email, token_json = drive_manager.fetch_token(full_url, redirect_uri)
+                
+                # HTML response that posts message to opener window
+                html = f"""
+                <html>
+                <head><title>Authentication Successful</title></head>
+                <body>
+                <script>
+                    window.opener.postMessage({{
+                        type: 'GOOGLE_AUTH_SUCCESS',
+                        email: '{user_email}',
+                        token: {json.dumps(token_json)}
+                    }}, '*');
+                    window.close();
+                </script>
+                <p>Authentication complete. You can close this window.</p>
+                </body>
+                </html>
+                """
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(html.encode('utf-8'))
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(f"Authentication failed: {e}".encode('utf-8'))
+                
+        elif parsed_url.path == '/api/data' and not route:
             target_db = get_db_path(parsed_url.query)
             if os.path.exists(target_db):
                 with open(target_db, 'r', encoding='utf-8') as f:
@@ -124,28 +176,27 @@ class handler(BaseHTTPRequestHandler):
                 
         elif route == 'drive_login' or parsed_url.path == '/api/drive/login':
             try:
-                # Local Drive logic
-                # Import dynamically to avoid crashing Vercel if google-auth doesn't exist
                 import sys
                 app_dir = os.path.join(os.path.dirname(DB_DIR), 'App')
                 if app_dir not in sys.path:
                     sys.path.append(app_dir)
-                try:
-                    from google_drive import GoogleDriveManager
-                    drive_manager = GoogleDriveManager(
-                        credentials_path=os.path.join(app_dir, 'credentials.json'),
-                        tokens_dir=os.path.join(app_dir, 'tokens')
-                    )
-                    drive_manager.authenticate()
-                    
-                    self.wfile.write(json.dumps({
-                        "email": drive_manager.user_email,
-                        "status": "authenticated"
-                    }).encode('utf-8'))
-                except ImportError:
-                    self.wfile.write(json.dumps({"error": "Google API libraries are not installed in this environment. Please run the server locally."}).encode('utf-8'))
-                except Exception as e:
-                    self.wfile.write(json.dumps({"error": f"Google SSO failed. Ensure you are running locally and have credentials.json. Details: {e}"}).encode('utf-8'))
+                from google_drive import GoogleDriveManager
+                drive_manager = GoogleDriveManager(
+                    credentials_path=os.path.join(app_dir, 'credentials.json'),
+                    tokens_dir=os.path.join(app_dir, 'tokens')
+                )
+                
+                protocol = self.headers.get('x-forwarded-proto', 'http')
+                host = self.headers.get('host', 'localhost:3001')
+                redirect_uri = f"{protocol}://{host}/api/drive/callback"
+                if "vercel.app" in host:
+                    redirect_uri = f"https://{host}/api/drive/callback"
+                
+                auth_url = drive_manager.get_auth_url(redirect_uri)
+                
+                self.wfile.write(json.dumps({
+                    "url": auth_url
+                }).encode('utf-8'))
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                 
@@ -165,11 +216,12 @@ class handler(BaseHTTPRequestHandler):
                 path_steps = data.get('path', [])
                 content_html = data.get('content', '')
                 user_email = data.get('email')
+                token_json = data.get('googleToken')
                 
                 if not path_steps:
                     raise ValueError("Missing 'path' in request body.")
 
-                drive_manager.authenticate(user_email)
+                drive_manager.authenticate(user_email, token_json)
                 result = drive_manager.sync_path_to_doc(path_steps, content_html)
                 
                 self.wfile.write(json.dumps(result).encode('utf-8'))
