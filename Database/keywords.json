@@ -1,0 +1,2014 @@
+{
+    "treeData": [
+        {
+            "id": "kw",
+            "name": "*KEYWORD",
+            "type": "item",
+            "color": "#000000"
+        },
+        {
+            "id": "tit",
+            "name": "*TITLE",
+            "type": "item",
+            "color": "#000000",
+            "rows": [
+                [
+                    {
+                        "label": "TITLE",
+                        "val": "LS-DYNA keyword deck by LS-PrePost"
+                    }
+                ]
+            ]
+        },
+        {
+            "id": "control",
+            "name": "*CONTROL",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "c1",
+                    "name": "CONTROL_CONTACT",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "SLSFAC",
+                                "val": "10.0"
+                            },
+                            {
+                                "label": "RWPNAL",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ISLCHK",
+                                "val": "1"
+                            },
+                            {
+                                "label": "SHLTHK",
+                                "val": "0"
+                            },
+                            {
+                                "label": "PENOPT",
+                                "val": "1"
+                            },
+                            {
+                                "label": "THKCHG",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ORIEN",
+                                "val": "1"
+                            },
+                            {
+                                "label": "ENMASS",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "USRSTR",
+                                "val": "0"
+                            },
+                            {
+                                "label": "USRFRC",
+                                "val": "0"
+                            },
+                            {
+                                "label": "NSBCS",
+                                "val": "0"
+                            },
+                            {
+                                "label": "INTERM",
+                                "val": "0"
+                            },
+                            {
+                                "label": "XPENE",
+                                "val": "4.0"
+                            },
+                            {
+                                "label": "SSTHK",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ECDT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TIEDPRJ",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "SFRIC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DFRIC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "EDC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VFC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "TH",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "TH_SF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "PEN_SF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ],
+                        [
+                            {
+                                "label": "IGNORE",
+                                "val": "0"
+                            },
+                            {
+                                "label": "FRCENG",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SKIPRWG",
+                                "val": "0"
+                            },
+                            {
+                                "label": "OUTSEG",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SPOTSTP",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SPOTDEL",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SPOTHIN",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ],
+                        [
+                            {
+                                "label": "ISYM",
+                                "val": "1"
+                            },
+                            {
+                                "label": "NSEROD",
+                                "val": "0"
+                            },
+                            {
+                                "label": "RWGAPS",
+                                "val": "1"
+                            },
+                            {
+                                "label": "RWGDTH",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "RWKSF",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "ICOV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SWRADF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ITHOFF",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "SHLEDG",
+                                "val": "0"
+                            },
+                            {
+                                "label": "PSTIFF",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ITHCNT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TDCNOF",
+                                "val": "0"
+                            },
+                            {
+                                "label": "FTALL",
+                                "val": "0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "SHLTRW",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "IGACTC",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "c2",
+                    "name": "CONTROL_SPH",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "NCBS",
+                                "val": "1"
+                            },
+                            {
+                                "label": "BOXID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "DT",
+                                "val": "1.00000E20"
+                            },
+                            {
+                                "label": "IDIM",
+                                "val": "3"
+                            },
+                            {
+                                "label": "NMNEIGH",
+                                "val": "150"
+                            },
+                            {
+                                "label": "FORM",
+                                "val": "0"
+                            },
+                            {
+                                "label": "START",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "MAXV",
+                                "val": "1.00000E15"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "CONT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "DERIV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "INI",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ISHOW",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IEROD",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ICONT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IAVIS",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ISYMP",
+                                "val": "10"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "ITHK",
+                                "val": "1"
+                            },
+                            {
+                                "label": "ISTAB",
+                                "val": "0"
+                            },
+                            {
+                                "label": "QL",
+                                "val": "0.01"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "SPHSORT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "c3",
+                    "name": "CONTROL_TERMINATION",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "ENDTIM",
+                                "val": "0.007"
+                            },
+                            {
+                                "label": "ENDCYC",
+                                "val": "0"
+                            },
+                            {
+                                "label": "DTMIN",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ENDENG",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ENDMAS",
+                                "val": "1.000000E8"
+                            },
+                            {
+                                "label": "NOSOL",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "c4",
+                    "name": "CONTROL_TIMESTEP",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "DTINIT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "TSSFAC",
+                                "val": "0.25"
+                            },
+                            {
+                                "label": "ISDO",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TSLIMT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DT2MS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "LCTM",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ERODE",
+                                "val": "0"
+                            },
+                            {
+                                "label": "MS1ST",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "DT2MSF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DT2MSLC",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IMSCL",
+                                "val": "0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "RMSCL",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "IHDO",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "database",
+            "name": "*DATABASE",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "d1",
+                    "name": "DATABASE_GLSTAT",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "DT",
+                                "val": "0.005"
+                            },
+                            {
+                                "label": "BINARY",
+                                "val": "0"
+                            },
+                            {
+                                "label": "LCUR",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IOOPT",
+                                "val": "1"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "d2",
+                    "name": "DATABASE_MATSUM",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "DT",
+                                "val": "0.005"
+                            },
+                            {
+                                "label": "BINARY",
+                                "val": "0"
+                            },
+                            {
+                                "label": "LCUR",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IOOPT",
+                                "val": "1"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "d3",
+                    "name": "DATABASE_BINARY_D3PLOT",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "DT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "LCDT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "BEAM",
+                                "val": "0"
+                            },
+                            {
+                                "label": "NPLTC",
+                                "val": "40"
+                            },
+                            {
+                                "label": "PSETID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ],
+                        [
+                            {
+                                "label": "IOOPT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "RATE",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "CUTOFF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "WINDOW",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "TYPE",
+                                "val": "0"
+                            },
+                            {
+                                "label": "PSET",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "boundary",
+            "name": "*BOUNDARY",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "b1",
+                    "name": "BOUNDARY_SPC_SET",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "NSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "CID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "DOFX",
+                                "val": "1"
+                            },
+                            {
+                                "label": "DOFY",
+                                "val": "1"
+                            },
+                            {
+                                "label": "DOFZ",
+                                "val": "1"
+                            },
+                            {
+                                "label": "DOFRX",
+                                "val": "1"
+                            },
+                            {
+                                "label": "DOFRY",
+                                "val": "1"
+                            },
+                            {
+                                "label": "DOFRZ",
+                                "val": "1"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "b2",
+                    "name": "BOUNDARY_SPH_SYMMETRY_PLANE",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "VTX",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VTY",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VTZ",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VHX",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VHY",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "VHZ",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "contact",
+            "name": "*CONTACT",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "cnt1",
+                    "name": "CONTACT_ERODING_SURFACE_TO_SURFACE_ID",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "CID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "TITLE",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ],
+                        [
+                            {
+                                "label": "SSID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "MSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "SSTYP",
+                                "val": "3"
+                            },
+                            {
+                                "label": "MSTYP",
+                                "val": "3"
+                            },
+                            {
+                                "label": "SBOXID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "MBOXID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "SPR",
+                                "val": "0"
+                            },
+                            {
+                                "label": "MPR",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "FS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "FD",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VDC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "PENCHK",
+                                "val": "0"
+                            },
+                            {
+                                "label": "BT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DT",
+                                "val": "1.00000E20"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "SFS",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "SFM",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "SST",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "MST",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SFST",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "SFMT",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "FSF",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "VSF",
+                                "val": "1.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "ISYM",
+                                "val": "1"
+                            },
+                            {
+                                "label": "EROSOP",
+                                "val": "1"
+                            },
+                            {
+                                "label": "IADJ",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ],
+                        [
+                            {
+                                "label": "SOFT",
+                                "val": "1"
+                            },
+                            {
+                                "label": "SOFSCL",
+                                "val": "0.1"
+                            },
+                            {
+                                "label": "LCIDAB",
+                                "val": "0"
+                            },
+                            {
+                                "label": "MAXPAR",
+                                "val": "1.025"
+                            },
+                            {
+                                "label": "SBOPT",
+                                "val": "2.0"
+                            },
+                            {
+                                "label": "DEPTH",
+                                "val": "3"
+                            },
+                            {
+                                "label": "BSORT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "FRCFRQ",
+                                "val": "1"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "part",
+            "name": "*PART",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "p1",
+                    "name": "PART (boxsolid)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "PID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "SECID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "MID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "EOSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "HGID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "GRAV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ADPOPT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TMID",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "p2",
+                    "name": "PART (spheresolid)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "PID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "SECID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "MID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "EOSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "HGID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "GRAV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ADPOPT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TMID",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "p3",
+                    "name": "PART (newgen_sph)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "PID",
+                                "val": "3"
+                            },
+                            {
+                                "label": "SECID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "MID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "EOSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "HGID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "GRAV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ADPOPT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TMID",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "p4",
+                    "name": "PART (newgen_sphball)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "PID",
+                                "val": "5"
+                            },
+                            {
+                                "label": "SECID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "MID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "EOSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "HGID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "GRAV",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ADPOPT",
+                                "val": "0"
+                            },
+                            {
+                                "label": "TMID",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "mat",
+            "name": "*MAT",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "mat1",
+                    "name": "MAT_JOHNSON_COOK (6061)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "MID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "RO",
+                                "val": "2.75000E-6"
+                            },
+                            {
+                                "label": "G",
+                                "val": "27.6"
+                            },
+                            {
+                                "label": "E",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "PR",
+                                "val": "0.33"
+                            },
+                            {
+                                "label": "DTF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VP",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "RATEOP",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "A",
+                                "val": "0.324"
+                            },
+                            {
+                                "label": "B",
+                                "val": "0.114"
+                            },
+                            {
+                                "label": "N",
+                                "val": "0.42"
+                            },
+                            {
+                                "label": "C",
+                                "val": "0.002"
+                            },
+                            {
+                                "label": "M",
+                                "val": "1.34"
+                            },
+                            {
+                                "label": "TM",
+                                "val": "920.0"
+                            },
+                            {
+                                "label": "TR",
+                                "val": "300.0"
+                            },
+                            {
+                                "label": "EPSO",
+                                "val": "0.001"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "CP",
+                                "val": "900.0"
+                            },
+                            {
+                                "label": "PC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SPALL",
+                                "val": "3.0"
+                            },
+                            {
+                                "label": "IT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D1",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "D2",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D3",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D4",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "D5",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "C2/P",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "EROD",
+                                "val": "0"
+                            },
+                            {
+                                "label": "EFMIN",
+                                "val": "1.0E-6"
+                            },
+                            {
+                                "label": "NUMINT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "mat2",
+                    "name": "MAT_JOHNSON_COOK (2024)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "MID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "RO",
+                                "val": "2.77000E-6"
+                            },
+                            {
+                                "label": "G",
+                                "val": "27.6"
+                            },
+                            {
+                                "label": "E",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "PR",
+                                "val": "0.33"
+                            },
+                            {
+                                "label": "DTF",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VP",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "RATEOP",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "A",
+                                "val": "0.26"
+                            },
+                            {
+                                "label": "B",
+                                "val": "0.426"
+                            },
+                            {
+                                "label": "N",
+                                "val": "0.34"
+                            },
+                            {
+                                "label": "C",
+                                "val": "0.018"
+                            },
+                            {
+                                "label": "M",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "TM",
+                                "val": "800.0"
+                            },
+                            {
+                                "label": "TR",
+                                "val": "300.0"
+                            },
+                            {
+                                "label": "EPSO",
+                                "val": "0.001"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "CP",
+                                "val": "900.0"
+                            },
+                            {
+                                "label": "PC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SPALL",
+                                "val": "3.0"
+                            },
+                            {
+                                "label": "IT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D1",
+                                "val": "0.8"
+                            },
+                            {
+                                "label": "D2",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D3",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "D4",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "D5",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "C2/P",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "EROD",
+                                "val": "0"
+                            },
+                            {
+                                "label": "EFMIN",
+                                "val": "1.0E-6"
+                            },
+                            {
+                                "label": "NUMINT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "mat3",
+                    "name": "MAT_ADD_EROSION (ID 2)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "MID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "EXCL",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "MXPRES",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "MNEPS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "EFFEPS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VOLEPS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "NUMFIP",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "NCS",
+                                "val": "1.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "MNPRES",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SIGP1",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SIGVM",
+                                "val": "2.6"
+                            },
+                            {
+                                "label": "MXEPS",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "EPSSH",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SIGTH",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "IMPULSE",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "FAILTM",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "IDAM",
+                                "val": "0"
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "-",
+                                "val": ""
+                            },
+                            {
+                                "label": "LCREGD",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "LCFLD",
+                                "val": "0"
+                            },
+                            {
+                                "label": "NSFF",
+                                "val": "10"
+                            },
+                            {
+                                "label": "EPSTHIN",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ENGCRT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "RADCRT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "LCEPS12",
+                                "val": "0"
+                            },
+                            {
+                                "label": "LCEPS13",
+                                "val": "0"
+                            },
+                            {
+                                "label": "LCEPSMX",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "DTEFLT",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "MXTMP",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DTMIN",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "section",
+            "name": "*SECTION",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "s1",
+                    "name": "SECTION_SOLID",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "SECID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "ELFORM",
+                                "val": "-1"
+                            },
+                            {
+                                "label": "AET",
+                                "val": "0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "COHOFF",
+                                "val": "0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "s2",
+                    "name": "SECTION_SPH (1.5)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "SECID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "CSLH",
+                                "val": "1.5"
+                            },
+                            {
+                                "label": "HMIN",
+                                "val": "0.2"
+                            },
+                            {
+                                "label": "HMAX",
+                                "val": "2.0"
+                            },
+                            {
+                                "label": "SPHINI",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "DEATH",
+                                "val": "1.0E20"
+                            },
+                            {
+                                "label": "START",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "SPHKERN",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "eos",
+            "name": "*EOS",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "eos1",
+                    "name": "EOS_GRUNEISEN",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "EOSID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "C",
+                                "val": "5328.0"
+                            },
+                            {
+                                "label": "S1",
+                                "val": "1.339"
+                            },
+                            {
+                                "label": "S2",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "S3",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "GAMAO",
+                                "val": "1.97"
+                            },
+                            {
+                                "label": "A",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "E0",
+                                "val": "0.0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "V0",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "UNUSED",
+                                "val": ""
+                            },
+                            {
+                                "label": "LCID",
+                                "val": "0"
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            },
+                            {
+                                "label": "",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "hourglass",
+            "name": "*HOURGLASS",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "hg1",
+                    "name": "HOURGLASS (solid)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "HGID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "IHQ",
+                                "val": "3"
+                            },
+                            {
+                                "label": "QM",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "IBQ",
+                                "val": "0"
+                            },
+                            {
+                                "label": "Q1",
+                                "val": "1.5"
+                            },
+                            {
+                                "label": "Q2",
+                                "val": "0.06"
+                            },
+                            {
+                                "label": "QB/VDC",
+                                "val": "0.1"
+                            },
+                            {
+                                "label": "QW",
+                                "val": "0.1"
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "id": "hg2",
+                    "name": "HOURGLASS (sph)",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "HGID",
+                                "val": "1"
+                            },
+                            {
+                                "label": "IHQ",
+                                "val": "0"
+                            },
+                            {
+                                "label": "QM",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "IBQ",
+                                "val": "0"
+                            },
+                            {
+                                "label": "Q1",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "Q2",
+                                "val": "1.0"
+                            },
+                            {
+                                "label": "QB/VDC",
+                                "val": "0.1"
+                            },
+                            {
+                                "label": "QW",
+                                "val": "0.1"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "initial",
+            "name": "*INITIAL",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "ini1",
+                    "name": "INITIAL_VELOCITY_GENERATION",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "ID",
+                                "val": "2"
+                            },
+                            {
+                                "label": "STYP",
+                                "val": "2"
+                            },
+                            {
+                                "label": "OMEGA",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VX",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VY",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "VZ",
+                                "val": "-6620.0"
+                            },
+                            {
+                                "label": "IVATN",
+                                "val": "0"
+                            },
+                            {
+                                "label": "ICID",
+                                "val": "0"
+                            }
+                        ],
+                        [
+                            {
+                                "label": "XC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "YC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "ZC",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "NX",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "NY",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "NZ",
+                                "val": "0.0"
+                            },
+                            {
+                                "label": "PHASE",
+                                "val": "0"
+                            },
+                            {
+                                "label": "IRIGID",
+                                "val": "0"
+                            }
+                        ]
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "element",
+            "name": "*ELEMENT",
+            "type": "group",
+            "color": "#000000",
+            "children": [
+                {
+                    "id": "el1",
+                    "name": "ELEMENT_SOLID",
+                    "type": "item",
+                    "color": "#000000",
+                    "rows": [
+                        [
+                            {
+                                "label": "EID",
+                                "val": ""
+                            },
+                            {
+                                "label": "PID",
+                                "val": ""
+                            },
+                            {
+                                "label": "N1",
+                                "val": ""
+                            },
+                            {
+                                "label": "N2",
+                                "val": ""
+                            },
+                            {
+                                "label": "N3",
+                                "val": ""
+                            },
+                            {
+                                "label": "N4",
+                                "val": ""
+                            },
+                            {
+                                "label": "N5",
+                                "val": ""
+                            },
+                            {
+                                "label": "N6",
+                                "val": ""
+                            }
+                        ]
+                    ]
+                }
+            ]
+        }
+    ],
+    "parameterNotes": {},
+    "expandedNodes": {
+        "control": true,
+        "database": false,
+        "boundary": false,
+        "contact": true,
+        "part": true,
+        "mat": false,
+        "section": false,
+        "eos": false,
+        "hourglass": false,
+        "initial": false,
+        "element": false
+    }
+}
