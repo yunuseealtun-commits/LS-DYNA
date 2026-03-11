@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/data.py",
+      "use": "@vercel/python"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/auth/register",
@@ -18,8 +24,16 @@
       "destination": "/api/data?route=drive_sync"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/drive/callback",
+      "destination": "/api/data?route=drive_callback"
+    },
+    {
+      "source": "/api/data",
+      "destination": "/api/data"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/App/$1"
     },
     {
       "source": "/",
