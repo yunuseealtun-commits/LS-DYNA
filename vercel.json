@@ -2,12 +2,24 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/auth/:path*",
-      "destination": "/api/data"
+      "source": "/api/auth/register",
+      "destination": "/api/data?route=register"
     },
     {
-      "source": "/api/drive/:path*",
-      "destination": "/api/data"
+      "source": "/api/auth/login",
+      "destination": "/api/data?route=login"
+    },
+    {
+      "source": "/api/drive/login",
+      "destination": "/api/data?route=drive_login"
+    },
+    {
+      "source": "/api/drive/sync",
+      "destination": "/api/data?route=drive_sync"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
       "source": "/",
