@@ -237,6 +237,8 @@
       useEffect(() => {
         if (!containerRef.current) return;
 
+        let isMounted = true;
+
         // Clean up any existing content
         containerRef.current.innerHTML = '';
         const editorDiv = document.createElement('div');
@@ -277,15 +279,33 @@
           }
         };
 
-        const JoditClass = window.Jodit.Jodit || window.Jodit || Jodit;
-        joditInstance.current = new JoditClass(editorDiv, config);
+        const initEditor = () => {
+          if (!isMounted) return;
+          let JoditClass = null;
+          if (typeof window.Jodit !== 'undefined') {
+            JoditClass = window.Jodit.Jodit || window.Jodit;
+          } else if (typeof Jodit !== 'undefined') {
+            JoditClass = Jodit;
+          }
 
-        // Initial value
-        isInternalChange.current = true;
-        joditInstance.current.value = value || '';
-        isInternalChange.current = false;
+          if (!JoditClass) {
+            console.warn("Jodit is not loaded yet, retrying in 100ms...");
+            setTimeout(initEditor, 100);
+            return;
+          }
+
+          joditInstance.current = new JoditClass(editorDiv, config);
+
+          // Initial value
+          isInternalChange.current = true;
+          joditInstance.current.value = value || '';
+          isInternalChange.current = false;
+        };
+
+        initEditor();
 
         return () => {
+          isMounted = false;
           if (joditInstance.current) {
             clearTimeout(joditInstance.current._changeTimeout);
             joditInstance.current.destruct();
