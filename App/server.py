@@ -61,6 +61,48 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
                 self.wfile.write(b'{"error": "Database not found"}')
+        elif parsed_url.path == '/api/drive/callback':
+            if not drive_manager:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b'{"error": "Google Drive manager not initialized."}')
+                return
+            from urllib.parse import parse_qs
+            try:
+                protocol = self.headers.get('x-forwarded-proto', 'http')
+                host = self.headers.get('host', 'localhost:3001')
+                full_url = f"{protocol}://{host}{self.path}"
+                redirect_uri = f"{protocol}://{host}/api/drive/callback"
+                
+                user_email, token_json = drive_manager.fetch_token(full_url, redirect_uri)
+                
+                html = f"""
+                <html>
+                <head><title>Authentication Successful</title></head>
+                <body>
+                <script>
+                    window.opener.postMessage({{
+                        type: 'GOOGLE_AUTH_SUCCESS',
+                        email: '{user_email}',
+                        token: {json.dumps(token_json)}
+                    }}, '*');
+                    window.close();
+                </script>
+                <p>Authentication complete. You can close this window.</p>
+                </body>
+                </html>
+                """
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(html.encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(f"Authentication failed: {e}".encode('utf-8'))
         else:
             super().do_GET()
 
@@ -99,16 +141,17 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                 return
             
             try:
-                # Trigger authentication flow
-                # This will open a browser window on the server machine
-                drive_manager.authenticate()
+                protocol = self.headers.get('x-forwarded-proto', 'http')
+                host = self.headers.get('host', 'localhost:3001')
+                redirect_uri = f"{protocol}://{host}/api/drive/callback"
+                
+                auth_url = drive_manager.get_auth_url(redirect_uri)
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
-                    "email": drive_manager.user_email,
-                    "status": "authenticated"
+                    "url": auth_url
                 }).encode('utf-8'))
             except Exception as e:
                 self.send_response(400)
@@ -130,12 +173,13 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                 path_steps = data.get('path', [])
                 content_html = data.get('content', '')
                 user_email = data.get('email')
+                token_json = data.get('googleToken')
                 
                 if not path_steps:
                     raise ValueError("Missing 'path' in request body.")
 
-                # Use the provided email to load specific credentials
-                drive_manager.authenticate(user_email)
+                # Use the provided email and token to load credentials
+                drive_manager.authenticate(email=user_email, token_json=token_json)
                 result = drive_manager.sync_path_to_doc(path_steps, content_html)
                 
                 self.send_response(200)
