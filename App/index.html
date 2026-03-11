@@ -1093,8 +1093,17 @@
             body: JSON.stringify({ username, password })
           });
 
+          if (!response.ok) {
+            const text = await response.text();
+            try {
+              const errData = JSON.parse(text);
+              throw new Error(errData.error || 'Something went wrong');
+            } catch (parseErr) {
+              throw new Error(`Server returned ${response.status}: ${text.substring(0, 40)}...`);
+            }
+          }
+
           const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
           if (isLogin) {
             localStorage.setItem('lsdyna_session', JSON.stringify(data));
@@ -1117,6 +1126,17 @@
           setGoogleLoading(true);
           setError('');
           const res = await fetch('/api/drive/login', { method: 'POST' });
+          
+          if (!res.ok) {
+            const text = await res.text();
+            try {
+              const errData = JSON.parse(text);
+              throw new Error(errData.error || 'SSO failed.');
+            } catch (e) {
+              throw new Error(`Server returned ${res.status}: ${text.substring(0, 40)}...`);
+            }
+          }
+
           const data = await res.json();
           
           if (data.url) {
@@ -1128,20 +1148,22 @@
               }
               try {
                 const pollRes = await fetch('/api/drive/login', { method: 'POST' });
-                const pollData = await pollRes.json();
-                if (pollData.user) {
-                  clearInterval(poll);
-                  popup.close();
-                  const session = { username: pollData.user, isGoogleOAuth: true };
-                  localStorage.setItem('lsdyna_session', JSON.stringify(session));
-                  onLogin(session);
+                if (pollRes.ok) {
+                    const pollData = await pollRes.json();
+                    if (pollData.email || pollData.user) {
+                      clearInterval(poll);
+                      popup.close();
+                      const session = { username: pollData.email || pollData.user, isGoogleOAuth: true };
+                      localStorage.setItem('lsdyna_session', JSON.stringify(session));
+                      onLogin(session);
+                    }
                 }
               } catch (e) {
                 // Ignore parsing errors during initial redirect
               }
             }, 3000);
-          } else if (data.user) {
-            const session = { username: data.user, isGoogleOAuth: true };
+          } else if (data.email || data.user) {
+            const session = { username: data.email || data.user, isGoogleOAuth: true };
             localStorage.setItem('lsdyna_session', JSON.stringify(session));
             onLogin(session);
           }
