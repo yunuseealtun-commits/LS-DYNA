@@ -9,8 +9,8 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <!-- Jodit Editor (MS Word-like WYSIWYG) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/4.0.0-beta.96/jodit.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/4.0.0-beta.96/jodit.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.11/jodit.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.11/jodit.min.js"></script>
 
   <!-- KaTeX for formula module -->
   <style>
@@ -276,7 +276,7 @@
           }
         };
 
-        joditInstance.current = window.Jodit.make(editorDiv, config);
+        joditInstance.current = new window.Jodit(editorDiv, config);
 
         // Initial value
         isInternalChange.current = true;
