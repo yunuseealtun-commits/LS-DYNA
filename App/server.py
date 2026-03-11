@@ -61,7 +61,7 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
             self.end_headers()
 
 if __name__ == '__main__':
-    port = 8000
+    port = 3001
     print(f"Starting server at http://localhost:{port}")
     server = HTTPServer(('localhost', port), KeywordManagerHandler)
     try:
