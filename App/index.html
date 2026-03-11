@@ -241,6 +241,79 @@
     .custom-quill-editor .ql-editor {
       min-height: 400px;
     }
+    /* ================= AUTH GATE STYLES ================= */
+    .auth-gate-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .auth-gate-overlay::before {
+      content: '';
+      position: absolute;
+      width: 50% ;
+      height: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+      top: -10%;
+      right: -10%;
+      filter: blur(60px);
+    }
+
+    .auth-gate-overlay::after {
+      content: '';
+      position: absolute;
+      width: 50% ;
+      height: 50%;
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, transparent 70%);
+      bottom: -10% ;
+      left: -10%;
+      filter: blur(60px);
+    }
+
+    .auth-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 40px;
+      width: 400px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      z-index: 10001;
+      transform: translateY(0);
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .auth-input {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      transition: all 0.3s ease;
+    }
+
+    .auth-input:focus {
+      border-color: #3b82f6;
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    .auth-btn-primary {
+      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .auth-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+    }
   </style>
   <!-- React and ReactDOM UMD -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -526,6 +599,36 @@
       const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
       const [templateNameInput, setTemplateNameInput] = useState('');
       const [tempGlobalNote, setTempGlobalNote] = useState(editingNode.globalNote || '');
+      const [driveSyncStatus, setDriveSyncStatus] = useState({}); // { [paramId]: 'idle'|'syncing'|'success'|'error' }
+
+      const syncToDrive = async (id, title, content, type = 'parameter') => {
+        setDriveSyncStatus(prev => ({ ...prev, [id]: 'syncing' }));
+
+        let path = ["LS-DYNA Research"];
+        if (type === 'general') {
+          path = [...path, editingNode.name, "General Notes"];
+        } else {
+          path = [...path, editingNode.name, "Parameters", title];
+        }
+
+        try {
+          const response = await fetch('/api/drive/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, content })
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setDriveSyncStatus(prev => ({ ...prev, [id]: 'success' }));
+            setTimeout(() => setDriveSyncStatus(prev => ({ ...prev, [id]: 'idle' })), 3000);
+          } else {
+            throw new Error(data.error || 'Sync failed');
+          }
+        } catch (err) {
+          setDriveSyncStatus(prev => ({ ...prev, [id]: 'error' }));
+          alert("Drive Sync Error: " + err.message);
+        }
+      };
 
       useEffect(() => {
         setTempGlobalNote(editingNode.globalNote || '');
@@ -811,11 +914,24 @@
                           className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
                           onClick={() => {
                             if (handleOpenNotesEditor) {
-                              handleOpenNotesEditor(selectedParameter, `${selectedParameter} Notes`);
+                              handleOpenNotesEditor(selectedParameter, `${selectedParameter} Notes`, editingNode.id);
                             }
                           }}
                         >
                           <FileText size={10} /> Open in Tabbed Editor
+                        </button>
+                        <button
+                          className={`ml-1 border px-2 py-0.5 text-[10px] rounded shadow-sm flex items-center gap-1 cursor-pointer transition-all ${driveSyncStatus[selectedParameter] === 'syncing' ? 'bg-gray-100 text-gray-400 cursor-wait' :
+                              driveSyncStatus[selectedParameter] === 'success' ? 'bg-green-100 text-green-700 border-green-200' :
+                                driveSyncStatus[selectedParameter] === 'error' ? 'bg-red-100 text-red-700 border-red-200' :
+                                  'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                            }`}
+                          onClick={() => syncToDrive(selectedParameter, selectedParameter, parameterNotes[selectedParameter] || '')}
+                          disabled={driveSyncStatus[selectedParameter] === 'syncing'}
+                        >
+                          <span className={driveSyncStatus[selectedParameter] === 'syncing' ? 'animate-spin' : ''}>☁</span>
+                          {driveSyncStatus[selectedParameter] === 'syncing' ? 'Syncing...' :
+                            driveSyncStatus[selectedParameter] === 'success' ? 'Synced' : 'Sync to Drive'}
                         </button>
                       </div>
                       <div className="flex-1 w-full min-h-0 min-w-0 text-gray-500 italic p-1 selectable" style={{ wordBreak: 'break-word', overflowY: 'auto' }}>
@@ -854,16 +970,31 @@
                   })()}
                 </div>
 
-                <button
-                  className="w-full bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white hover:bg-white text-[#000080] font-bold py-2 px-2 text-[10px] flex items-center justify-center gap-2 transition-all shadow-sm shrink-0"
-                  onClick={() => {
-                    if (handleOpenNotesEditor) {
-                      handleOpenNotesEditor(`General_${editingNode.id}`, `General - ${editingNode.name.replace(/^\*/, '')}`);
-                    }
-                  }}
-                >
-                  <Plus size={12} /> Open in Tabbed Editor
-                </button>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    className="w-full bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white hover:bg-white text-[#000080] font-bold py-2 px-2 text-[10px] flex items-center justify-center gap-2 transition-all shadow-sm"
+                    onClick={() => {
+                      if (handleOpenNotesEditor) {
+                        handleOpenNotesEditor(`General_${editingNode.id}`, `General - ${editingNode.name.replace(/^\*/, '')}`, editingNode.id);
+                      }
+                    }}
+                  >
+                    <Plus size={12} /> Open in Tabbed Editor
+                  </button>
+                  <button
+                    className={`w-full border-2 border-white border-r-gray-500 border-b-gray-500 py-1.5 px-2 text-[10px] font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'bg-gray-200 text-gray-500 cursor-wait' :
+                        driveSyncStatus[`General_${editingNode.id}`] === 'success' ? 'bg-green-100 text-green-700' :
+                          driveSyncStatus[`General_${editingNode.id}`] === 'error' ? 'bg-red-100 text-red-700' :
+                            'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    onClick={() => syncToDrive(`General_${editingNode.id}`, 'General Notes', parameterNotes[`General_${editingNode.id}`] || '', 'general')}
+                    disabled={driveSyncStatus[`General_${editingNode.id}`] === 'syncing'}
+                  >
+                    <span className={driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'animate-spin' : ''}>☁</span>
+                    {driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'Syncing...' :
+                      driveSyncStatus[`General_${editingNode.id}`] === 'success' ? 'Synced to Drive' : 'Sync to Google Drive'}
+                  </button>
+                </div>
               </div>
 
               <div className="bg-gray-300 px-2 py-0.5 text-[9px] text-gray-500 text-center border-t border-gray-400 italic">
@@ -921,6 +1052,118 @@
     };
 
 
+    const AuthGate = ({ onLogin }) => {
+      const [isLogin, setIsLogin] = useState(true);
+      const [username, setUsername] = useState('');
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Something went wrong');
+
+          if (isLogin) {
+            localStorage.setItem('lsdyna_session', JSON.stringify(data));
+            onLogin(data);
+          } else {
+            alert('Registration successful! Please login.');
+            setIsLogin(true);
+            setPassword('');
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="auth-gate-overlay">
+          <div className="auth-card">
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+                <Settings className="text-white w-8 h-8" />
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-1">LS-DYNA Research</h1>
+              <p className="text-gray-400 text-sm">{isLogin ? 'Welcome back, please login' : 'Create a new researcher account'}</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-400 ml-1">Username</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <LucideReact.User size={14} className="text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-400 ml-1">Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <LucideReact.Lock size={14} className="text-gray-400" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {error && <div className="text-red-400 text-xs mt-1 text-center bg-red-400/10 py-2 rounded-lg border border-red-400/20">{error}</div>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="auth-btn-primary w-full py-3 rounded-xl mt-4 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (isLogin ? 'Sign In' : 'Create Account')}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-white/5 text-center">
+              <button
+                className="text-gray-400 text-sm hover:text-white transition-colors"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                }}
+              >
+                {isLogin ? "Don't have an account? Register" : "Already have an account? Sign In"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+
     const KeywordManager = () => {
       const [activeTab, setActiveTab] = useState('Keyword Tree');
       const [selectedNode, setSelectedNode] = useState(null);
@@ -928,6 +1171,12 @@
       const [searchValues, setSearchValues] = useState(true);
       const [ppSearchText, setPpSearchText] = useState('');
       const [clipboard, setClipboard] = useState(null);
+
+      // Auth State
+      const [auth, setAuth] = useState(() => {
+        const saved = localStorage.getItem('lsdyna_session');
+        return saved ? JSON.parse(saved) : null;
+      });
 
       // Right-click context menu state
       const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, nodeId: null });
@@ -1007,6 +1256,31 @@
       // Start Menu / File Menu State
       const [fileMenuOpen, setFileMenuOpen] = useState(false);
 
+      // Google Login State
+      const [googleUser, setGoogleUser] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('lsdyna_google_user') || 'null'); } catch { return null; }
+      });
+
+      const loginWithGoogle = async () => {
+        try {
+          const response = await fetch('/api/drive/login', { method: 'POST' });
+          const data = await response.json();
+          if (response.ok && data.email) {
+            setGoogleUser(data);
+            localStorage.setItem('lsdyna_google_user', JSON.stringify(data));
+          } else {
+            alert("Google Login Error: " + (data.error || "Unknown error"));
+          }
+        } catch (err) {
+          alert("Connection Error: " + err.message);
+        }
+      };
+
+      const logoutGoogle = () => {
+        setGoogleUser(null);
+        localStorage.removeItem('lsdyna_google_user');
+      };
+
       // Auto-close File menu when clicking outside
       useEffect(() => {
         const handleClickOutside = (e) => {
@@ -1064,12 +1338,13 @@
       const [editingPPTask, setEditingPPTask] = useState(null);
       const [editingPPTaskText, setEditingPPTaskText] = useState('');
 
-      const handleOpenNotesEditor = useCallback((paramName, customTitle) => {
+      const handleOpenNotesEditor = useCallback((paramName, customTitle, ownerId) => {
         setEditorTabs(prev => {
           if (!prev.find(t => t.id === paramName)) {
-            return [...prev, { id: paramName, type: 'parameter', title: customTitle || paramName }];
+            return [...prev, { id: paramName, type: 'parameter', title: customTitle || paramName, ownerId }];
           }
-          return prev;
+          // If already open, update ownerId if provided
+          return prev.map(t => t.id === paramName ? { ...t, ownerId: ownerId || t.ownerId } : t);
         });
         setActiveTabId(paramName);
         const newZ = maxZIndex + 1;
@@ -1919,8 +2194,18 @@
         handleSelect, handleStartRename, handleDragStart, handleDragOver, handleDrop,
         toggleNode, handleRenameSubmit, handleOpenForm, handleOpenNotesEditor, handleOpenPPNotesEditor,
         handleAddFolder, handleAddNode, handleDeleteNode, changeNodeColor, findNodeById,
-        miniQuillModules, quillModules, sidebarQuillModules, editorZoom
+        miniQuillModules, quillModules, sidebarQuillModules, editorZoom,
+        googleUser, loginWithGoogle, logoutGoogle,
+        currentUser: auth?.username,
+        logout: () => {
+          localStorage.removeItem('lsdyna_session');
+          setAuth(null);
+        }
       };
+
+      if (!auth) {
+        return <AuthGate onLogin={(user) => setAuth(user)} />;
+      }
 
       return (
         <AppContext.Provider value={ctxValue}>
@@ -2217,6 +2502,7 @@
                             className="absolute top-full left-0 mt-1 bg-[#c0c0c0] text-black border-2 border-white border-r-gray-600 border-b-gray-600 shadow-lg z-[9999] min-w-[180px] py-1 flex flex-col font-sans text-xs font-normal"
                             onPointerDown={e => e.stopPropagation()}
                           >
+                            <div className="px-4 py-1 border-b border-gray-400 text-blue-800 font-bold bg-gray-200 uppercase tracking-tighter text-[9px]">Researcher: {auth?.username}</div>
                             <button
                               className="text-left px-4 py-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2"
                               onClick={(e) => {
@@ -2239,6 +2525,20 @@
                               }}
                             >
                               <FileText size={12} /> Export Applied Keywords
+                            </button>
+                            <div className="border-t border-gray-400 my-1"></div>
+                            <button
+                              className="text-left px-4 py-1.5 hover:bg-red-600 hover:text-white flex items-center gap-2 text-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Are you sure you want to logout?')) {
+                                  localStorage.removeItem('lsdyna_session');
+                                  setAuth(null);
+                                  setFileMenuOpen(false);
+                                }
+                              }}
+                            >
+                              <LucideReact.LogOut size={12} /> Logout
                             </button>
                           </div>
                         )}
@@ -2716,6 +3016,11 @@
               parameterNotes={parameterNotes}
               postProcessingTasks={postProcessingTasks}
               handleEditorChange={handleEditorChange}
+              treeData={treeData}
+              findNodeById={findNodeById}
+              googleUser={googleUser}
+              loginWithGoogle={loginWithGoogle}
+              logoutGoogle={logoutGoogle}
             />
 
             {/* Mind Map Window */}
