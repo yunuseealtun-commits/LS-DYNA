@@ -21,13 +21,27 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def get_db_path(self, qs):
+        from urllib.parse import parse_qs
+        parsed = parse_qs(qs)
+        file_param = parsed.get('file', ['database'])[0]
+        # Sanitize to prevent directory traversal
+        clean_name = ''.join(c for c in file_param if c.isalnum() or c in ['_', '-'])
+        if not clean_name:
+            clean_name = 'database'
+        return os.path.join(DB_DIR, f"{clean_name}.json")
+
     def do_GET(self):
-        if self.path == '/api/data':
-            if os.path.exists(DB_FILE):
+        from urllib.parse import urlparse
+        parsed_url = urlparse(self.path)
+        
+        if parsed_url.path == '/api/data':
+            target_db = self.get_db_path(parsed_url.query)
+            if os.path.exists(target_db):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                with open(DB_FILE, 'r', encoding='utf-8') as f:
+                with open(target_db, 'r', encoding='utf-8') as f:
                     self.wfile.write(f.read().encode('utf-8'))
             else:
                 self.send_response(404)
@@ -37,14 +51,18 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def do_POST(self):
-        if self.path == '/api/data':
+        from urllib.parse import urlparse
+        parsed_url = urlparse(self.path)
+        
+        if parsed_url.path == '/api/data':
+            target_db = self.get_db_path(parsed_url.query)
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             
             try:
                 # Validate JSON before saving
                 json_data = json.loads(post_data.decode('utf-8'))
-                with open(DB_FILE, 'w', encoding='utf-8') as f:
+                with open(target_db, 'w', encoding='utf-8') as f:
                     json.dump(json_data, f, indent=4)
                 
                 self.send_response(200)
