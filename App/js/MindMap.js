@@ -635,34 +635,81 @@ const MindMapCanvas = () => {
         )}
       </div>
 
-      {/* 2. Centralized Global Editor Bottom Panel */}
+      <div className="flex-1 min-h-0 bg-white" />
+
+      {/* 2. Centralized Global Editor Animated Popup Modal */}
       {activeNodeId && (() => {
         const activeNode = nodes.find(n => n.id === activeNodeId);
         if (!activeNode) return null;
         return (
-          <div className="h-[250px] shrink-0 border-t-2 border-gray-400 bg-white flex flex-col relative z-[500] shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.15)]">
-            <div className="bg-[#000080] text-white px-3 py-1 flex justify-between items-center shrink-0 h-[28px]">
-              <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider">
-                <FileText size={12} /> Düğüm Bilgisi: {activeNode.name || 'İsimsiz'}
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/40 z-[9990] backdrop-blur-[2px]"
+              onClick={() => setActiveNodeId(null)}
+            />
+
+            {/* Modal Container */}
+            <div
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[70%] max-w-[1000px] max-height-[700px] bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col z-[9991] animate-editor-popup overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Window Header */}
+              <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-3 py-1.5 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3 font-bold text-xs uppercase tracking-wider">
+                  <FileText size={14} className="text-blue-200" />
+                  <span>Düğüm Notu: {activeNode.name || 'İsimsiz'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      // Open in Tabbed Editor (OneNote)
+                      if (window.handleOpenNotesEditor) {
+                        window.handleOpenNotesEditor(activeNode.id, `MindMap: ${activeNode.name}`);
+                      } else {
+                        // Fallback if context not passed correctly
+                        const { handleOpenNotesEditor } = React.useContext(AppContext);
+                        if (handleOpenNotesEditor) {
+                          handleOpenNotesEditor(activeNode.id, `MindMap: ${activeNode.name}`);
+                        }
+                      }
+                      setActiveNodeId(null); // Close popup after opening in main editor
+                    }}
+                    className="flex items-center gap-1.5 bg-[#c0c0c0] hover:bg-white text-black text-[10px] px-2 py-0.5 border border-black/20 rounded shadow-sm transition-all font-bold active:translate-y-px"
+                    title="Tam ekran editörde aç"
+                  >
+                    <Plus size={10} /> Open in Tabbed Editor
+                  </button>
+                  <div className="w-px h-4 bg-white/20 mx-1" />
+                  <button
+                    onClick={() => setActiveNodeId(null)}
+                    className="hover:bg-red-500 rounded p-1 transition-colors bg-white/10"
+                    title="Kapat"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setActiveNodeId(null)}
-                className="hover:bg-red-500 rounded p-1 transition-colors"
-                title="Kapat"
-              >
-                <X size={12} />
-              </button>
+
+              {/* Editor Content Area */}
+              <div className="flex-1 flex flex-col min-h-0 bg-white border-t border-gray-400">
+                <JoditReactEditor
+                  key={`editor-${activeNode.id}`}
+                  value={activeNode.text || ''}
+                  onChange={(val) => updateNode(activeNode.id, { text: val })}
+                  className="flex-1 min-h-0 text-[13px] border-none"
+                  placeholder="Notlarınızı buraya yazın..."
+                  autoFocus={true}
+                />
+              </div>
+
+              {/* Footer Status Bar */}
+              <div className="bg-[#c0c0c0] border-t border-white border-l border-white px-2 py-1 text-[10px] text-gray-700 flex justify-between items-center font-mono">
+                <span>Otomatik kaydediliyor...</span>
+                <span className="opacity-50">NODE_ID: {activeNode.id}</span>
+              </div>
             </div>
-            <div className="flex-1 flex flex-col min-h-0 bg-white">
-              <JoditReactEditor
-                key={`editor-${activeNode.id}`} // Force re-render on node switch
-                value={activeNode.text || ''}
-                onChange={(val) => updateNode(activeNode.id, { text: val })}
-                className="flex-1 min-h-0 text-[12px] border-none"
-                placeholder="Notlarınızı buraya yazın..."
-              />
-            </div>
-          </div>
+          </>
         );
       })()}
     </div>
