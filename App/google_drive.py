@@ -1,8 +1,9 @@
 import os.path
 import json
+import os
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -21,46 +22,97 @@ class GoogleDriveManager:
         self.docs_service = None
         self.user_email = None
 
-        if not os.path.exists(self.tokens_dir):
-            os.makedirs(self.tokens_dir)
+        if os.environ.get('VERCEL') == '1' or not os.path.exists(self.tokens_dir):
+            try:
+                os.makedirs(self.tokens_dir, exist_ok=True)
+            except OSError:
+                self.tokens_dir = '/tmp/tokens'
+                try: os.makedirs(self.tokens_dir, exist_ok=True)
+                except: pass
 
     def get_token_path(self, email=None):
         if not email:
             return os.path.join(self.tokens_dir, 'default_token.json')
         return os.path.join(self.tokens_dir, f"{email}.json")
 
-    def authenticate(self, email=None):
-        """Authenticates the user and returns the Drive service."""
+    def get_client_config(self):
+        client_id = os.environ.get('GOOGLE_CLIENT_ID')
+        client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
+        if client_id and client_secret:
+            return {
+                "web": {
+                    "client_id": client_id,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "client_secret": client_secret,
+                }
+            }
+        
+        if not os.path.exists(self.credentials_path):
+            raise FileNotFoundError(f"Missing {self.credentials_path} or Environment Variables. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.")
+            
+        with open(self.credentials_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def get_auth_url(self, redirect_uri):
+        client_config = self.get_client_config()
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=SCOPES,
+            redirect_uri=redirect_uri
+        )
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        return auth_url
+
+    def fetch_token(self, authorization_response_url, redirect_uri):
+        client_config = self.get_client_config()
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=SCOPES,
+            redirect_uri=redirect_uri
+        )
+        # Fetch token using the full callback URL containing the code
+        flow.fetch_token(authorization_response=authorization_response_url)
+        creds = flow.credentials
+        
+        # Identify the user
+        user_info_service = build('oauth2', 'v2', credentials=creds)
+        user_info = user_info_service.userinfo().get().execute()
+        self.user_email = user_info.get('email')
+        
+        # Save token locally or to temp folder for the current active request
+        actual_token_path = self.get_token_path(self.user_email)
+        try:
+            with open(actual_token_path, 'w', encoding='utf-8') as token:
+                token.write(creds.to_json())
+        except OSError:
+            pass
+            
+        return self.user_email, json.loads(creds.to_json())
+        
+    def authenticate(self, email=None, token_json=None):
         token_path = self.get_token_path(email)
         creds = None
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
         
+        # Priority to provided token JSON
+        if token_json:
+            creds = Credentials.from_authorized_user_info(token_json, SCOPES)
+        elif os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
+                client_config = self.get_client_config()
+                client_id = client_config.get('web', client_config.get('installed', {})).get('client_id')
+                client_secret = client_config.get('web', client_config.get('installed', {})).get('client_secret')
+                creds.client_id = client_id
+                creds.client_secret = client_secret
                 creds.refresh(Request())
             else:
-                if not os.path.exists(self.credentials_path):
-                    raise FileNotFoundError(f"Missing {self.credentials_path}. Please provide it in the App folder.")
-                
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_path, SCOPES)
-                creds = flow.run_local_server(port=0)
-            
-            # Identify the user
-            user_info_service = build('oauth2', 'v2', credentials=creds)
-            user_info = user_info_service.userinfo().get().execute()
-            self.user_email = user_info.get('email')
-            
-            # Save token under email-specific path
-            actual_token_path = self.get_token_path(self.user_email)
-            with open(actual_token_path, 'w') as token:
-                token.write(creds.to_json())
-        else:
-            # If creds were loaded, we can still identify user from them if needed
-            # or just assume the email passed in is correct.
-            self.user_email = email
+                raise Exception("Token expired and could not be refreshed. Please re-authenticate via Google SSO.")
 
+        self.user_email = email
         self.service = build('drive', 'v3', credentials=creds)
         self.docs_service = build('docs', 'v1', credentials=creds)
         return self.service
