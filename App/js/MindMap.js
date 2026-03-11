@@ -850,3 +850,5 @@ const TreeItem = ({ item, level = 0 }) => {
 
 window.MindMapNode = MindMapNode;
 window.MindMapCanvas = MindMapCanvas;
+window.TreeItem = TreeItem;
+window.TaskBar = TaskBar;
