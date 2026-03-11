@@ -17,9 +17,103 @@ const TabbedEditor = ({
   setEditorZoom,
   parameterNotes,
   postProcessingTasks,
-  handleEditorChange
+  handleEditorChange,
+  treeData,
+  findNodeById,
+  googleUser,
+  loginWithGoogle,
+  logoutGoogle
 }) => {
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, success, error
+  const [syncError, setSyncError] = useState(null);
+  const [syncedDocUrl, setSyncedDocUrl] = useState(null);
+
   if (!editorWindow.isVisible) return null;
+
+  const activeTab = editorTabs.find(t => t.id === activeTabId);
+
+  const getPathSteps = (nodeId) => {
+    const steps = ["LS-DYNA Research"];
+    
+    // Helper to find path in tree
+    const findPath = (nodes, targetId, currentPath = []) => {
+      for (const n of nodes) {
+        if (n.id === targetId) return currentPath;
+        if (n.children) {
+          const res = findPath(n.children, targetId, [...currentPath, n.name]);
+          if (res) return res;
+        }
+      }
+      return null;
+    };
+
+    const tab = editorTabs.find(t => t.id === nodeId);
+    const effectiveOwnerId = tab?.ownerId || (nodeId.startsWith('General_') ? nodeId.replace('General_', '') : null);
+
+    if (effectiveOwnerId) {
+      const node = findNodeById(treeData, effectiveOwnerId);
+      if (node) {
+        const parentPath = findPath(treeData, effectiveOwnerId) || [];
+        const isGeneral = nodeId.startsWith('General_');
+        return [...steps, ...parentPath, node.name, isGeneral ? "General Notes" : tab?.title || nodeId];
+      }
+    } else if (nodeId.startsWith('mm-')) {
+      return [...steps, "Mind Map", activeTab?.title || nodeId];
+    } else {
+      // Parameter note - find the node by checking which one has this parameter in parameterNotes
+      // Since activeTabId for params is typically just the param name or a specific ID
+      // Let's assume for now the user had a node selected when opening it.
+      // A better way would be data-attribute or passing ownerNodeId in the tab object.
+      // For now, we'll try to find any node that logically contains this "tab title" if it's a param name.
+      return [...steps, "Parameters", activeTab?.title || nodeId];
+    }
+    return [...steps, activeTab?.title || nodeId];
+  };
+
+  const syncToDrive = async () => {
+    if (!activeTab) return;
+    if (!googleUser) {
+      alert("Please login with Google first.");
+      return;
+    }
+
+    setSyncStatus('syncing');
+    setSyncError(null);
+
+    const path = getPathSteps(activeTab.id);
+    const content = activeTab.type === 'parameter'
+      ? (parameterNotes[activeTab.id] || '')
+      : (postProcessingTasks.find(t => t.id === activeTab.id)?.details || '');
+
+    try {
+      const response = await fetch('/api/drive/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path,
+          content,
+          email: googleUser.email
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSyncStatus('success');
+        setSyncedDocUrl(data.url);
+        // Don't auto-clear success if we want to show the link
+        // setTimeout(() => setSyncStatus('idle'), 5000); 
+        if (data.url) {
+          console.log("Synced to Google Drive:", data.url);
+        }
+      } else {
+        throw new Error(data.error || 'Sync failed');
+      }
+    } catch (err) {
+      setSyncStatus('error');
+      setSyncError(err.message);
+      console.error("Drive Sync Error:", err);
+    }
+  };
 
   return (
     <DraggableWindow
@@ -29,11 +123,58 @@ const TabbedEditor = ({
           <div className="flex items-center gap-1">
             <FileText size={14} className="text-blue-500" /> Tabbed Notes
           </div>
-          {lastSaved && (
-            <div className="text-[10px] font-normal bg-blue-900/30 px-2 py-0.5 rounded flex items-center gap-1">
-              <span className="opacity-70">Oto-kayıt:</span> {lastSaved}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {lastSaved && (
+              <div className="hidden md:flex text-[10px] font-normal bg-blue-900/30 px-2 py-0.5 rounded items-center gap-1">
+                <span className="opacity-70">Oto-kayıt:</span> {lastSaved}
+              </div>
+            )}
+
+            {!googleUser ? (
+              <button
+                onClick={loginWithGoogle}
+                className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-sm transition-all"
+              >
+                <img src="https://www.google.com/favicon.ico" className="w-3 h-3" alt="" />
+                Login with Google
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={syncToDrive}
+                  disabled={syncStatus === 'syncing'}
+                  title={`Syncing to ${googleUser.email}`}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all shadow-sm border ${syncStatus === 'syncing' ? 'bg-gray-400 text-white cursor-wait' :
+                      syncStatus === 'success' ? 'bg-green-500 text-white border-green-600' :
+                        syncStatus === 'error' ? 'bg-red-500 text-white border-red-600' :
+                          'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'
+                    }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${syncStatus === 'syncing' ? 'bg-white animate-pulse' : 'hidden'}`} />
+                  {syncStatus === 'syncing' ? 'Syncing...' :
+                    syncStatus === 'success' ? '✔ Synced' :
+                      syncStatus === 'error' ? '⚠ Error' : '☁ Sync to Drive'}
+                </button>
+                {syncStatus === 'success' && syncedDocUrl && (
+                  <a
+                    href={syncedDocUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-medium"
+                  >
+                    Open in Docs <Scan size={10} />
+                  </a>
+                )}
+                <button
+                  onClick={logoutGoogle}
+                  className="px-2 py-1 rounded text-[10px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                  title="Logout"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
       zIndex={editorWindow.zIndex}
