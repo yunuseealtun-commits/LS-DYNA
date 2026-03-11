@@ -8,8 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Jodit Editor (MS Word-like WYSIWYG) - MUST BE BEFORE BABEL TO PREVENT UMD BUG -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jodit@3.24.11/build/jodit.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/jodit@3.24.11/build/jodit.min.js"></script>
+  <link rel="stylesheet" href="js/jodit.min.css" />
+  <script src="js/jodit.min.js"></script>
 
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script type="text/babel" src="js/components.js"></script>
@@ -1747,9 +1747,10 @@
         return nodes.reduce((acc, node) => {
           const nameMatches = String(node.name || '').toLowerCase().includes(text.toLowerCase());
           let valueMatches = false;
-          // Deep search in parameter values if checked
+          // Deep search in parameter values and LABELS if checked
           if (searchValues && node.rows) {
             valueMatches = node.rows.some(r => r.some(c =>
+              (c.label && String(c.label).toLowerCase().includes(text.toLowerCase())) ||
               (c.val !== undefined && c.val !== null && String(c.val).toLowerCase().includes(text.toLowerCase())) ||
               (c.quickNote && String(c.quickNote).toLowerCase().includes(text.toLowerCase()))
             ));
