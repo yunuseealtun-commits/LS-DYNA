@@ -34,13 +34,16 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed_url = urlparse(self.path)
+        from urllib.parse import parse_qs
+        query_params = parse_qs(parsed_url.query)
+        route = query_params.get('route', [None])[0]
         
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        if parsed_url.path == '/api/data':
+        if parsed_url.path == '/api/data' and not route:
             target_db = get_db_path(parsed_url.query)
             if os.path.exists(target_db):
                 with open(target_db, 'r', encoding='utf-8') as f:
@@ -52,6 +55,10 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed_url = urlparse(self.path)
+        from urllib.parse import parse_qs
+        query_params = parse_qs(parsed_url.query)
+        route = query_params.get('route', [None])[0]
+
         content_length = int(self.headers.get('Content-Length', 0))
         post_data = self.rfile.read(content_length)
         
@@ -60,25 +67,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         
-        if parsed_url.path == '/api/data':
-            target_db = get_db_path(parsed_url.query)
-            try:
-                json_data = json.loads(post_data.decode('utf-8'))
-                if not os.path.exists(DB_DIR):
-                    try:
-                        os.makedirs(DB_DIR)
-                    except OSError:
-                        pass
-                try:
-                    with open(target_db, 'w', encoding='utf-8') as f:
-                        json.dump(json_data, f, indent=4)
-                    self.wfile.write(b'{"status": "success", "message": "Saved successfully"}')
-                except OSError:
-                    self.wfile.write(json.dumps({"error": "Vercel uses a read-only filesystem. Save is ignored.", "status": "ephemeral_success"}).encode('utf-8'))
-            except Exception as e:
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-                
-        elif parsed_url.path == '/api/auth/register':
+        if route == 'register' or parsed_url.path == '/api/auth/register':
             try:
                 data = json.loads(post_data.decode('utf-8'))
                 username = data.get('username')
@@ -111,7 +100,7 @@ class handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                 
-        elif parsed_url.path == '/api/auth/login':
+        elif route == 'login' or parsed_url.path == '/api/auth/login':
             try:
                 data = json.loads(post_data.decode('utf-8'))
                 username = data.get('username')
@@ -133,7 +122,7 @@ class handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                 
-        elif parsed_url.path == '/api/drive/login':
+        elif route == 'drive_login' or parsed_url.path == '/api/drive/login':
             try:
                 # Local Drive logic
                 # Import dynamically to avoid crashing Vercel if google-auth doesn't exist
@@ -160,7 +149,7 @@ class handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                 
-        elif parsed_url.path == '/api/drive/sync':
+        elif route == 'drive_sync' or parsed_url.path == '/api/drive/sync':
             try:
                 import sys
                 app_dir = os.path.join(os.path.dirname(DB_DIR), 'App')
@@ -184,6 +173,23 @@ class handler(BaseHTTPRequestHandler):
                 result = drive_manager.sync_path_to_doc(path_steps, content_html)
                 
                 self.wfile.write(json.dumps(result).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+        elif parsed_url.path == '/api/data':
+            target_db = get_db_path(parsed_url.query)
+            try:
+                json_data = json.loads(post_data.decode('utf-8'))
+                if not os.path.exists(DB_DIR):
+                    try:
+                        os.makedirs(DB_DIR)
+                    except OSError:
+                        pass
+                try:
+                    with open(target_db, 'w', encoding='utf-8') as f:
+                        json.dump(json_data, f, indent=4)
+                    self.wfile.write(b'{"status": "success", "message": "Saved successfully"}')
+                except OSError:
+                    self.wfile.write(json.dumps({"error": "Vercel uses a read-only filesystem. Save is ignored.", "status": "ephemeral_success"}).encode('utf-8'))
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                 
