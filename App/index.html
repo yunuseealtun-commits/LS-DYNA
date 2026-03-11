@@ -1141,31 +1141,37 @@
           
           if (data.url) {
             const popup = window.open(data.url, 'GoogleLogin', 'width=500,height=600');
-            const poll = setInterval(async () => {
-              if (popup.closed) {
-                clearInterval(poll);
-                setGoogleLoading(false);
-              }
-              try {
-                const pollRes = await fetch('/api/drive/login', { method: 'POST' });
-                if (pollRes.ok) {
-                    const pollData = await pollRes.json();
-                    if (pollData.email || pollData.user) {
-                      clearInterval(poll);
-                      popup.close();
-                      const session = { username: pollData.email || pollData.user, isGoogleOAuth: true };
-                      localStorage.setItem('lsdyna_session', JSON.stringify(session));
-                      onLogin(session);
-                    }
+            
+            const authListener = (event) => {
+                if (event.data && event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                    window.removeEventListener('message', authListener);
+                    setGoogleLoading(false);
+                    const session = { 
+                        username: event.data.email, 
+                        isGoogleOAuth: true,
+                        googleToken: event.data.token
+                    };
+                    localStorage.setItem('lsdyna_session', JSON.stringify(session));
+                    onLogin(session);
                 }
-              } catch (e) {
-                // Ignore parsing errors during initial redirect
+            };
+            window.addEventListener('message', authListener);
+            
+            const poll = setInterval(() => {
+              if (popup && popup.closed) {
+                clearInterval(poll);
+                setTimeout(() => {
+                    setGoogleLoading(false);
+                    window.removeEventListener('message', authListener);
+                }, 500);
               }
-            }, 3000);
+            }, 1000);
+            
           } else if (data.email || data.user) {
             const session = { username: data.email || data.user, isGoogleOAuth: true };
             localStorage.setItem('lsdyna_session', JSON.stringify(session));
             onLogin(session);
+            setGoogleLoading(false);
           }
         } catch (e) {
           setError('Google Sign-in failed: ' + e.message);
