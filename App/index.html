@@ -8,9 +8,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Jodit Editor (MS Word-like WYSIWYG) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.11/jodit.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.11/jodit.min.js"></script>
+  <!-- Quill Editor -->
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 
   <!-- KaTeX for formula module -->
   <style>
@@ -227,82 +227,82 @@
     const { createRoot } = ReactDOM;
     const { Minus, Plus, Search, FileText, Folder, Settings, X, Square, Scan, Type } = LucideReact;
 
-    // We use Jodit Editor to provide a robust, MS Word-like rich text experience
-    const JoditReactEditor = ({ value, onChange, placeholder, className, autoFocus }) => {
-      const containerRef = useRef(null);
-      const joditInstance = useRef(null);
+    const VanillaQuillEditor = ({ value, onChange, placeholder, modules, className, autoFocus, onFocus }) => {
+      const editorRef = useRef(null);
+      const quillInstance = useRef(null);
       const isInternalChange = useRef(false);
 
       useEffect(() => {
-        if (!containerRef.current) return;
+        if (!editorRef.current) return;
 
-        // Clean up any existing content
-        containerRef.current.innerHTML = '';
+        // Ensure clean initialization
+        editorRef.current.innerHTML = '';
         const editorDiv = document.createElement('div');
-        containerRef.current.appendChild(editorDiv);
+        editorRef.current.appendChild(editorDiv);
 
-        const config = {
-          theme: 'default',
-          placeholder: placeholder || 'Type your notes here...',
-          readonly: false,
-          toolbarButtonSize: 'middle',
-          autofocus: autoFocus || false,
-          toolbarSticky: true,
-          showCharsCounter: false,
-          showWordsCounter: false,
-          showXPathInStatusbar: false,
-          disablePlugins: "about,video",
-          buttons: [
-            'source', '|',
-            'bold', 'strikethrough', 'underline', 'italic', '|',
-            'superscript', 'subscript', '|',
-            'ul', 'ol', '|',
-            'outdent', 'indent', '|',
-            'font', 'fontsize', 'brush', 'paragraph', '|',
-            'image', 'table', 'link', '|',
-            'align', 'undo', 'redo', '|',
-            'hr', 'eraser', 'copyformat', '|',
-            'fullsize', 'print'
-          ],
-          events: {
-            change: (newHtml) => {
-              if (isInternalChange.current) return;
-              // Add a slight debounce to prevent React thrashing
-              clearTimeout(joditInstance.current._changeTimeout);
-              joditInstance.current._changeTimeout = setTimeout(() => {
-                if (onChange) onChange(newHtml);
-              }, 300);
-            }
+        quillInstance.current = new window.Quill(editorDiv, {
+          theme: 'snow',
+          placeholder: placeholder || 'Start typing...',
+          modules: modules || {
+            toolbar: [
+              ['bold', 'italic', 'underline', 'strike'],
+              ['blockquote', 'code-block'],
+              [{ 'header': 1 }, { 'header': 2 }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ 'indent': '-1' }, { 'indent': '+1' }],
+              [{ 'direction': 'rtl' }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'font': [] }],
+              [{ 'align': [] }],
+              ['clean']
+            ]
           }
-        };
+        });
 
-        joditInstance.current = new window.Jodit(editorDiv, config);
+        if (value) {
+          isInternalChange.current = true;
+          quillInstance.current.clipboard.dangerouslyPasteHTML(value);
+          isInternalChange.current = false;
+        }
 
-        // Initial value
-        isInternalChange.current = true;
-        joditInstance.current.value = value || '';
-        isInternalChange.current = false;
+        quillInstance.current.on('text-change', () => {
+          if (isInternalChange.current) return;
+          if (onChange) {
+            onChange(quillInstance.current.root.innerHTML);
+          }
+        });
+
+        if (onFocus) {
+          quillInstance.current.root.addEventListener('focus', onFocus);
+        }
+
+        if (autoFocus) {
+          setTimeout(() => quillInstance.current.focus(), 50);
+        }
 
         return () => {
-          if (joditInstance.current) {
-            clearTimeout(joditInstance.current._changeTimeout);
-            joditInstance.current.destruct();
+          if (quillInstance.current && onFocus) {
+            quillInstance.current.root.removeEventListener('focus', onFocus);
           }
+          quillInstance.current = null;
         };
-      }, []); // Empty dependency array means this initializes once
+      }, []);
 
-      // Handle value changes from parent (e.g. loading a different note)
       useEffect(() => {
-        if (joditInstance.current && value !== undefined) {
-          if (joditInstance.current.value !== value) {
+        if (quillInstance.current && value !== undefined) {
+          const currentHtml = quillInstance.current.root.innerHTML;
+          if (currentHtml !== value && value !== '<p><br></p>') {
             isInternalChange.current = true;
-            joditInstance.current.value = value || '';
+            quillInstance.current.clipboard.dangerouslyPasteHTML(value || '');
             isInternalChange.current = false;
           }
         }
       }, [value]);
 
-      return <div className={`flex flex-col ${className}`} ref={containerRef} />;
+      return <div className={`flex flex-col ${className}`} ref={editorRef} />;
     };
 
     const initialTreeData = [
@@ -875,7 +875,7 @@
                   <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] max-h-[100px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
                 )}
                 <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
-                  <JoditReactEditor
+                  <VanillaQuillEditor
                     value={node.text || ''}
                     onChange={(val) => updateNode(node.id, { text: val })}
                     placeholder="Type your notes..."
@@ -915,7 +915,7 @@
                   <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                 </div>
                 <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
-                  <JoditReactEditor
+                  <VanillaQuillEditor
                     value={node.text || ''}
                     onChange={(val) => updateNode(node.id, { text: val })}
                     placeholder="Type your notes..."
