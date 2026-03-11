@@ -213,6 +213,7 @@ const MindMapCanvas = () => {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState(null);
+  const initialLoad = useRef(true);
 
   useEffect(() => {
     if (initialLoad.current) {
