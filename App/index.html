@@ -7,10 +7,12 @@
   <title>Keyword Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+  <!-- Jodit Editor (MS Word-like WYSIWYG) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/4.0.0-beta.96/jodit.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/4.0.0-beta.96/jodit.min.js"></script>
+
+  <!-- KaTeX for formula module -->
   <style>
     body,
     html {
@@ -213,9 +215,6 @@
   <script>window.react = window.React;</script>
   <!-- Lucide Icons UMD -->
   <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
-  <!-- Quill UMD -->
-  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
   <!-- KaTeX for formula module -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.js"></script>
@@ -228,75 +227,78 @@
     const { createRoot } = ReactDOM;
     const { Minus, Plus, Search, FileText, Folder, Settings, X, Square, Scan, Type } = LucideReact;
 
-    // We use vanilla Quill.js to avoid React lifecycle crashes
-    const VanillaQuillEditor = ({ value, onChange, placeholder, modules, className, autoFocus }) => {
+    // We use Jodit Editor to provide a robust, MS Word-like rich text experience
+    const JoditReactEditor = ({ value, onChange, placeholder, className, autoFocus }) => {
       const containerRef = useRef(null);
-      const quillInstance = useRef(null);
+      const joditInstance = useRef(null);
       const isInternalChange = useRef(false);
 
       useEffect(() => {
         if (!containerRef.current) return;
 
-        // Clean up any existing content just in case
+        // Clean up any existing content
         containerRef.current.innerHTML = '';
-
-        // Register inline styles for bulletproof formatting instead of failing CSS classes
-        const ColorStyle = window.Quill.import('attributors/style/color');
-        const BackgroundStyle = window.Quill.import('attributors/style/background');
-        const AlignStyle = window.Quill.import('attributors/style/align');
-        window.Quill.register(ColorStyle, true);
-        window.Quill.register(BackgroundStyle, true);
-        window.Quill.register(AlignStyle, true);
-
-        // Create a wrapper for Quill to attach to
         const editorDiv = document.createElement('div');
-        editorDiv.className = 'flex-1 min-h-[150px] bg-white';
         containerRef.current.appendChild(editorDiv);
 
-        quillInstance.current = new window.Quill(editorDiv, {
-          theme: 'snow',
-          modules: modules || { toolbar: false },
-          placeholder: placeholder || ''
-        });
-
-        // Set initial value quietly
-        if (value) {
-          quillInstance.current.clipboard.dangerouslyPasteHTML(value);
-        }
-
-        quillInstance.current.on('text-change', (delta, oldDelta, source) => {
-          if (source !== 'user') return;
-          isInternalChange.current = true;
-          const html = quillInstance.current.root.innerHTML;
-          onChange(html);
-        });
-
-        if (autoFocus) {
-          setTimeout(() => quillInstance.current.focus(), 150);
-        }
-
-        // Cleanup function for when React unmounts the tab
-        return () => {
-          if (containerRef.current) {
-            containerRef.current.innerHTML = ''; // This wipes the editor AND the orphaned toolbar Quill injected
+        const config = {
+          theme: 'default',
+          placeholder: placeholder || 'Type your notes here...',
+          readonly: false,
+          toolbarButtonSize: 'middle',
+          autofocus: autoFocus || false,
+          toolbarSticky: true,
+          showCharsCounter: false,
+          showWordsCounter: false,
+          showXPathInStatusbar: false,
+          disablePlugins: "about,video",
+          buttons: [
+            'source', '|',
+            'bold', 'strikethrough', 'underline', 'italic', '|',
+            'superscript', 'subscript', '|',
+            'ul', 'ol', '|',
+            'outdent', 'indent', '|',
+            'font', 'fontsize', 'brush', 'paragraph', '|',
+            'image', 'table', 'link', '|',
+            'align', 'undo', 'redo', '|',
+            'hr', 'eraser', 'copyformat', '|',
+            'fullsize', 'print'
+          ],
+          events: {
+            change: (newHtml) => {
+              if (isInternalChange.current) return;
+              // Add a slight debounce to prevent React thrashing
+              clearTimeout(joditInstance.current._changeTimeout);
+              joditInstance.current._changeTimeout = setTimeout(() => {
+                if (onChange) onChange(newHtml);
+              }, 300);
+            }
           }
-          quillInstance.current = null;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []); // Only run once on mount
 
-      // Listen to external value changes (like undo/redo or database loads)
+        joditInstance.current = window.Jodit.make(editorDiv, config);
+
+        // Initial value
+        isInternalChange.current = true;
+        joditInstance.current.value = value || '';
+        isInternalChange.current = false;
+
+        return () => {
+          if (joditInstance.current) {
+            clearTimeout(joditInstance.current._changeTimeout);
+            joditInstance.current.destruct();
+          }
+        };
+      }, []); // Empty dependency array means this initializes once
+
+      // Handle value changes from parent (e.g. loading a different note)
       useEffect(() => {
-        if (!quillInstance.current) return;
-        // Avoid overwriting if we just caused the change
-        if (isInternalChange.current) {
-          isInternalChange.current = false;
-          return;
-        }
-        const currentHtml = quillInstance.current.root.innerHTML;
-        if (value !== undefined && value !== currentHtml) {
-          if (value === '' && currentHtml === '<p><br></p>') return;
-          quillInstance.current.clipboard.dangerouslyPasteHTML(value);
+        if (joditInstance.current && value !== undefined) {
+          if (joditInstance.current.value !== value) {
+            isInternalChange.current = true;
+            joditInstance.current.value = value || '';
+            isInternalChange.current = false;
+          }
         }
       }, [value]);
 
@@ -470,59 +472,54 @@
     });
 
     // ================= DRAGGABLE WINDOW COMPONENT =================
+    // ================= DRAGGABLE WINDOW COMPONENT =================
     const DraggableWindow = ({
       id, title, children, onClose, initialPos, zIndex, onFocus,
-      width = 450, height, minHeight = 200, maxHeight = 800,
+      width = 450, height = 300, minHeight = 150, maxHeight = 1080,
       isMinimized, onMinimize, isMaximized, onMaximize, allowOverflow = false
     }) => {
-      const [pos, setPos] = useState(initialPos);
+      const [pos, setPos] = useState(initialPos || { x: 50, y: 50 });
       const [isDragging, setIsDragging] = useState(false);
+      const [isResizing, setIsResizing] = useState(false);
       const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-      const windowRef = React.useRef(null);
-      // Track custom dimensions for native CSS resizing sync
       const [customDims, setCustomDims] = useState({ w: width, h: height });
-      const isMaxRef = React.useRef(isMaximized);
-      isMaxRef.current = isMaximized;
-
-      React.useLayoutEffect(() => {
-        if (!windowRef.current) return;
-        const observer = new ResizeObserver(entries => {
-          if (isMaxRef.current) return; // Don't track maximize transformations
-          for (let entry of entries) {
-            const newW = entry.borderBoxSize ? entry.borderBoxSize[0].inlineSize : entry.contentRect.width;
-            const newH = entry.borderBoxSize ? entry.borderBoxSize[0].blockSize : entry.contentRect.height;
-            if (newW && newH) {
-              // Only update if fundamentally changed by user dragging the resize handle
-              setCustomDims(prev => {
-                if (Math.abs(prev.w - newW) > 5 || Math.abs(prev.h - newH) > 5) return { w: newW, h: newH };
-                return prev;
-              });
-            }
-          }
-        });
-        observer.observe(windowRef.current);
-        return () => observer.disconnect();
-      }, []);
-
 
       const handlePointerDown = (e) => {
+        if (e.target.closest('.no-drag')) return;
         setDragOffset({ x: e.clientX - pos.x, y: e.clientY - pos.y });
         setIsDragging(true);
         e.target.setPointerCapture(e.pointerId);
         if (onFocus) onFocus();
       };
+
+      const handleResizeDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsResizing(true);
+        setDragOffset({ x: e.clientX, y: e.clientY });
+        e.target.setPointerCapture(e.pointerId);
+        if (onFocus) onFocus();
+      };
+
       const handlePointerMove = (e) => {
         if (isDragging) {
           const newX = e.clientX - dragOffset.x;
           const newY = e.clientY - dragOffset.y;
-          const clampedX = Math.max(0, Math.min(window.innerWidth - 100, newX));
-          const clampedY = Math.max(0, Math.min(window.innerHeight - 50, newY));
-          setPos({ x: clampedX, y: clampedY });
+          setPos({ x: newX, y: newY });
+        } else if (isResizing) {
+          const deltaX = e.clientX - dragOffset.x;
+          const deltaY = e.clientY - dragOffset.y;
+          setCustomDims(prev => ({
+            w: Math.max(300, prev.w + deltaX),
+            h: Math.max(minHeight, prev.h + deltaY)
+          }));
+          setDragOffset({ x: e.clientX, y: e.clientY });
         }
       };
+
       const handlePointerUp = (e) => {
         setIsDragging(false);
+        setIsResizing(false);
         e.target.releasePointerCapture(e.pointerId);
       };
 
@@ -536,26 +533,34 @@
       if (isMinimized) return null;
 
       const windowStyle = isMaximized
-        ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 200 }
-        : { left: pos.x, top: pos.y, width: customDims.w ? (typeof customDims.w === 'number' ? `${customDims.w}px` : customDims.w) : undefined, height: customDims.h ? (typeof customDims.h === 'number' ? `${customDims.h}px` : customDims.h) : undefined, zIndex, minWidth: 200, minHeight, maxHeight };
+        ? { left: 0, top: 0, width: `${maxDims.w}px`, height: `${maxDims.h}px`, zIndex, minWidth: 300 }
+        : {
+          left: pos.x,
+          top: pos.y,
+          width: `${customDims.w}px`,
+          height: `${customDims.h}px`,
+          zIndex,
+          minWidth: 300,
+          minHeight,
+          maxHeight
+        };
 
       return (
         <div
-          ref={windowRef}
-          className={`absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} ${isMaximized ? '' : 'resize'}`}
+          className={`absolute flex flex-col bg-[#f0f0f0] border-2 border-white border-r-gray-500 border-b-gray-500 shadow-xl ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'}`}
           style={windowStyle}
           onMouseDown={onFocus}
         >
           <div
-            className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-pointer"
+            className="bg-gradient-to-r from-[#000080] to-[#1084d0] px-2 py-1 flex justify-between items-center select-none text-white cursor-pointer shrink-0"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
           >
-            <span className="font-bold tracking-wide text-sm flex items-center gap-2" >
+            <span className="font-bold tracking-wide text-xs flex items-center gap-2 truncate pr-4" >
               {title}
             </span>
-            < div className="flex gap-1" onPointerDown={e => e.stopPropagation()} >
+            < div className="flex gap-1 no-drag" onPointerDown={e => e.stopPropagation()} >
               {onMinimize && (
                 <button onClick={onMinimize} className="w-4 h-4 bg-[#c0c0c0] border border-white border-r-gray-600 border-b-gray-600 flex items-center justify-center text-black font-bold leading-none active:border-gray-600 active:border-r-white active:border-b-white" > <Minus size={12} strokeWidth={3} /> </button>
               )}
@@ -569,8 +574,18 @@
               )}
             </div>
           </div>
-          < div className={`flex-1 flex flex-col ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} min-h-0`} >
+          < div className={`flex-1 flex flex-col ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} min-h-0 relative`} >
             {children}
+            {!isMaximized && (
+              <div
+                className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-[100] flex items-end justify-end p-0.5 group"
+                onPointerDown={handleResizeDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+              >
+                <div className="w-0 h-0 border-l-[8px] border-l-transparent border-b-[8px] border-b-gray-400 group-hover:border-b-blue-600"></div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -902,13 +917,11 @@
                   <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                 </div>
                 <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
-                  <VanillaQuillEditor
-                    className={`mindmap-node-editor flex-1 flex flex-col min-h-0 ${activeNodeId === node.id ? 'active-editor' : ''}`}
-                    modules={{ toolbar: [['bold', 'italic', 'underline', 'strike'], [{ 'color': [] }, { 'background': [] }], [{ 'font': [] }, { 'size': ['small', false, 'large'] }], [{ 'align': [] }, { 'list': 'bullet' }]] }}
+                  <JoditReactEditor
                     value={node.text || ''}
                     onChange={(val) => updateNode(node.id, { text: val })}
                     placeholder="Type your notes..."
-                    onFocus={() => { if (setActiveNodeId) setActiveNodeId(node.id); }}
+                    className="flex-1"
                   />
                 </div>
               </div>
@@ -1578,9 +1591,9 @@
     const InputFormView = ({ editingNode: initialNode, onClose }) => {
       const {
         parameterNotes, setParameterNotes,
-        paramContextMenu, setParamContextMenu, miniQuillModules, setTreeData,
+        paramContextMenu, setParamContextMenu, setTreeData,
         selectedParameter, setSelectedParameter, handleOpenNotesEditor,
-        treeData, findNodeById, quillModules, sidebarQuillModules, editorZoom
+        treeData, findNodeById, editorZoom
       } = React.useContext(AppContext);
 
       // Fetch live node data so child edits (colors, tags, values) reflect instantly
@@ -1718,7 +1731,6 @@
                             <span className="font-bold text-gray-600 text-right pr-1 self-end mb-1 shrink-0" > {rowIdx + 1} </span>
                             {row.map((field, colIdx) => {
                               const bgColor = field.bgColor || 'transparent';
-                              const textColor = field.textColor || 'inherit';
                               const tags = field.tags || [];
 
                               return (
@@ -1835,32 +1847,9 @@
                                         />
                                       </>
                                     ) : (
-                                      <div className="h-[36px] w-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          className="text-[10px] text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 hover:border-blue-400 w-full rounded"
-                                          onClick={() => {
-                                            const newName = window.prompt("Enter new parameter name:");
-                                            if (newName) {
-                                              setTreeData(prev => {
-                                                const updateFieldVal = (nodes) => {
-                                                  return nodes.map(n => {
-                                                    if (n.id === editingNode.id) {
-                                                      const newRows = [...n.rows];
-                                                      newRows[rowIdx] = [...newRows[rowIdx]];
-                                                      newRows[rowIdx][colIdx] = { label: newName, val: '' };
-                                                      return { ...n, rows: newRows };
-                                                    }
-                                                    if (n.children) return { ...n, children: updateFieldVal(n.children) };
-                                                    return n;
-                                                  });
-                                                };
-                                                return updateFieldVal(prev);
-                                              });
-                                            }
-                                          }}
-                                        >+ Add</button>
-                                      </div>
-                                    )}
+                                      <div className="h-[36px] w-full" />
+                                    )
+                                  }
                                 </div>
                               );
                             })}
@@ -1890,8 +1879,8 @@
                   )}
               </div>
 
-              {/* Bottom Text Area */}
-              <div className="mt-2 h-[150px] min-h-[50px] border border-gray-400 bg-white shadow-inner p-2 overflow-auto resize-y font-sans shrink-0 text-[12px] relative group flex flex-col" >
+              {/* Bottom Text Area: Parameter Notes */}
+              <div className="mt-2 h-[180px] min-h-[50px] border border-gray-400 bg-white shadow-inner p-2 overflow-hidden font-sans shrink-0 text-[12px] relative flex flex-col" >
                 {
                   selectedParameter ? (
                     <>
@@ -1905,11 +1894,11 @@
                             }
                           }}
                         >
-                          <FileText size={10} /> Tam Ekran Düzenle (Full Editor)
+                          <FileText size={10} /> Tam Ekran (Full Editor)
                         </button>
                       </div>
                       <div className="flex-1 w-full min-h-0 flex flex-col" >
-                        <VanillaQuillEditor
+                        <JoditReactEditor
                           value={(() => {
                             let note = '';
                             editingNode.rows.forEach(r => {
@@ -1936,14 +1925,13 @@
                               return updateFieldNote(prev);
                             });
                           }}
-                          className="flex-1 border-none bg-white font-sans text-xs"
-                          modules={miniQuillModules}
-                          placeholder={`Enter quick notes for ${selectedParameter}...`}
+                          className="flex-1 min-h-0 text-[10px]"
+                          placeholder={`Notes for ${selectedParameter}...`}
                         />
                       </div>
                     </>
                   ) : (
-                    <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50" > $# Select a parameter to view or quick-edit its notes...</div>
+                    <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50 text-[10px]" > $# Select a parameter to view or quick-edit its notes...</div>
                   )}
               </div>
             </div>
@@ -1951,8 +1939,8 @@
             {/* Right Side: General Notes */}
             <div className="flex-[1] flex flex-col min-w-0 min-h-0 border border-gray-400 bg-white shadow-sm">
               <div className="bg-[#000080] font-bold text-white p-1 text-center border-b border-gray-400 text-xs shadow-sm">General Notes ({editingNode.name.replace(/^\*/, '')})</div>
-              <div className="flex-1 flex min-h-0">
-                <VanillaQuillEditor
+              <div className="flex-1 flex min-h-0 flex-col">
+                <JoditReactEditor
                   value={tempGlobalNote}
                   onChange={(val) => {
                     setTempGlobalNote(val);
@@ -1967,15 +1955,14 @@
                       return updateGlobalNote(prev);
                     });
                   }}
-                  className="onenote-editor-wrapper flex-1 border-none font-sans text-[11px] h-full overflow-visible"
-                  modules={sidebarQuillModules}
-                  placeholder={`Use this space for global keyword notes...`}
+                  className="flex-1 text-[10px]"
+                  placeholder={`Global notes...`}
                 />
               </div>
             </div>
           </div>
 
-          {/* Template Manager ModalOverlay */}
+          {/* Template Manager */}
           {isTemplateManagerOpen && (
             <div className="absolute inset-0 bg-black/30 z-[999] flex items-center justify-center p-4">
               <div className="bg-[#f0f0f0] border-2 border-white border-r-gray-600 border-b-gray-600 shadow-xl w-full max-w-md flex flex-col font-sans text-sm">
@@ -1996,7 +1983,7 @@
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                             <button className="bg-green-100 hover:bg-green-300 px-2 py-0.5 border border-gray-400" onClick={(e) => {
                               e.stopPropagation();
-                              if (window.confirm(`Overwrite current data with template '${k}'?`)) {
+                              if (window.confirm(`Overwrite data with template '${k}'?`)) {
                                 setTreeData(prev => {
                                   const loadTmpl = (nodes) => {
                                     return nodes.map(n => {
@@ -2010,39 +1997,10 @@
                                 setIsTemplateManagerOpen(false);
                               }
                             }}>Apply</button>
-                            <button className="bg-red-100 hover:bg-red-300 px-2 py-0.5 border border-gray-400 text-red-800" onClick={(e) => {
-                              e.stopPropagation();
-                              if (window.confirm(`Delete template '${k}'?`)) {
-                                delete tmpls[k];
-                                localStorage.setItem('lsdyna_templates', JSON.stringify(tmpls));
-                                setTemplateNameInput(prev => prev + ' '); // force render hack
-                              }
-                            }}>Delete</button>
                           </div>
                         </div>
                       ));
                     })()}
-                  </div>
-
-                  <div className="flex flex-col gap-1 mt-2">
-                    <span className="font-bold text-gray-700 text-xs">Save Current Layout</span>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={templateNameInput.trim()}
-                        onChange={e => setTemplateNameInput(e.target.value)}
-                        placeholder="Name for new template..."
-                        className="flex-1 border border-gray-400 px-2 py-1 text-xs"
-                      />
-                      <button className="bg-[#e0ffe0] border-2 border-white border-r-gray-600 border-b-gray-600 px-3 active:bg-[#c0ffc0]" onClick={() => {
-                        const tName = templateNameInput.trim();
-                        if (!tName) { alert("Please enter a template name."); return; }
-                        const tmpls = JSON.parse(localStorage.getItem('lsdyna_templates') || '{}');
-                        tmpls[tName] = editingNode.rows;
-                        localStorage.setItem('lsdyna_templates', JSON.stringify(tmpls));
-                        setTemplateNameInput('');
-                      }}>Save</button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -2081,7 +2039,7 @@
       // Notes Editor Management & Tabs State
       const [editorTabs, setEditorTabs] = useState([]); // Array of { id: string, type: 'parameter'|'pp_task', title: string }
       const [activeTabId, setActiveTabId] = useState(null);
-      const [editorWindow, setEditorWindow] = useState({ isVisible: false, isMinimized: false, isMaximized: true, zIndex: 11 });
+      const [editorWindow, setEditorWindow] = useState({ isVisible: false, isMinimized: false, isMaximized: false, zIndex: 11 });
 
       const [editorZoom, setEditorZoom] = useState(100);
 
@@ -3888,7 +3846,7 @@
                     <div className="bg-white rounded-lg shadow-md mx-auto min-h-full transition-transform origin-top-center onenote-editor border border-gray-200 flex flex-col"
                       style={{ width: '850px', maxWidth: '95%', zoom: `${editorZoom}%` }}>
                       {activeTabId ? (
-                        <VanillaQuillEditor
+                        <JoditReactEditor
                           key={activeTabId}
                           value={
                             editorTabs.find(t => t.id === activeTabId)?.type === 'parameter'
@@ -3897,7 +3855,6 @@
                           }
                           onChange={handleEditorChange}
                           className="flex-1 border-0 text-[14px] flex flex-col min-h-0"
-                          modules={quillModules}
                           autoFocus={true}
                         />
                       ) : (
