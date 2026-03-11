@@ -18,6 +18,18 @@
 
   <!-- KaTeX for formula module -->
   <style>
+    body {
+      user-select: none;
+    }
+
+    input,
+    textarea,
+    [contenteditable="true"],
+    .selectable,
+    .jodit-wysiwyg {
+      user-select: text !important;
+    }
+
     body,
     html {
       margin: 0;
@@ -771,86 +783,66 @@
                   )}
               </div>
 
-              {/* Bottom Text Area: Parameter Notes */}
-              <div className="mt-2 h-[180px] min-h-[50px] border border-gray-400 bg-white shadow-inner p-2 overflow-hidden font-sans shrink-0 text-[12px] relative flex flex-col" >
+              {/* Bottom Text Area: Parameter Notes (Preview Only) */}
+              <div className="mt-2 h-[80px] min-h-[50px] border border-gray-400 bg-white shadow-inner p-2 overflow-hidden font-sans shrink-0 text-[12px] flex flex-col" >
                 {
                   selectedParameter ? (
                     <>
                       <div className="flex justify-between items-center mb-1 pb-1 border-b border-gray-300 shrink-0" >
-                        <div className="font-bold text-[#000080]" > {selectedParameter} Notes: </div>
+                        <div className="font-bold text-[#000080]" > {selectedParameter} Quick Note: </div>
                         <button
                           className="bg-blue-100 border border-gray-400 hover:bg-blue-200 px-2 py-0.5 text-[10px] rounded text-blue-800 shadow-sm flex items-center gap-1 cursor-pointer"
                           onClick={() => {
                             if (handleOpenNotesEditor) {
-                              handleOpenNotesEditor(selectedParameter);
+                              handleOpenNotesEditor(selectedParameter, `${selectedParameter} Notes`);
                             }
                           }}
                         >
-                          <FileText size={10} /> Tam Ekran (Full Editor)
+                          <FileText size={10} /> Open in Tabbed Editor
                         </button>
                       </div>
-                      <div className="flex-1 w-full min-h-0 flex flex-col" >
-                        <JoditReactEditor
-                          value={(() => {
-                            let note = '';
-                            editingNode.rows.forEach(r => {
-                              r.forEach(c => {
-                                if (c.label === selectedParameter) {
-                                  note = c.quickNote || '';
-                                }
-                              });
-                            });
-                            return note;
-                          })()}
-                          onChange={(val) => {
-                            setTreeData(prev => {
-                              const updateFieldNote = (nodes) => {
-                                return nodes.map(n => {
-                                  if (n.id === editingNode.id) {
-                                    const newRows = n.rows.map(r => r.map(c => c.label === selectedParameter ? { ...c, quickNote: val } : c));
-                                    return { ...n, rows: newRows };
-                                  }
-                                  if (n.children) return { ...n, children: updateFieldNote(n.children) };
-                                  return n;
-                                });
-                              };
-                              return updateFieldNote(prev);
-                            });
-                          }}
-                          className="flex-1 min-h-0 text-[10px]"
-                          placeholder={`Notes for ${selectedParameter}...`}
-                        />
+                      <div className="flex-1 w-full min-h-0 min-w-0 text-gray-500 italic p-1 selectable" style={{ wordBreak: 'break-word', overflowY: 'auto' }}>
+                        {(() => {
+                          const noteHtml = parameterNotes[selectedParameter] || '';
+                          const textNode = document.createElement('div');
+                          textNode.innerHTML = noteHtml;
+                          const pureText = textNode.textContent || textNode.innerText || '';
+                          return pureText ? pureText.substring(0, 150) + (pureText.length > 150 ? '...' : '') : '$# No notes for this parameter yet. Click "Open in Tabbed Editor" to add some.';
+                        })()}
                       </div>
                     </>
                   ) : (
-                    <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50 text-[10px]" > $# Select a parameter to view or quick-edit its notes...</div>
+                    <div className="text-gray-500 italic font-mono h-full flex items-center justify-center bg-gray-50 text-[10px] selectable" > $# Select a parameter to view its quick note...</div>
                   )}
               </div>
             </div>
 
             {/* Right Side: General Notes */}
-            <div className="flex-[1] flex flex-col min-w-0 min-h-0 border border-gray-400 bg-white shadow-sm">
-              <div className="bg-[#000080] font-bold text-white p-1 text-center border-b border-gray-400 text-xs shadow-sm">General Notes ({editingNode.name.replace(/^\*/, '')})</div>
-              <div className="flex-1 flex min-h-0 flex-col">
-                <JoditReactEditor
-                  value={tempGlobalNote}
-                  onChange={(val) => {
-                    setTempGlobalNote(val);
-                    setTreeData(prev => {
-                      const updateGlobalNote = (nodes) => {
-                        return nodes.map(n => {
-                          if (n.id === editingNode.id) return { ...n, globalNote: val };
-                          if (n.children) return { ...n, children: updateGlobalNote(n.children) };
-                          return n;
-                        });
-                      };
-                      return updateGlobalNote(prev);
-                    });
-                  }}
-                  className="flex-1 text-[10px]"
-                  placeholder={`Global notes...`}
-                />
+            <div className="flex-[1] flex flex-col min-w-0 min-h-0 border border-gray-400 bg-white shadow-sm p-4 items-center justify-center gap-4 relative">
+              <div className="absolute top-0 left-0 right-0 bg-[#000080] font-bold text-white p-1 text-center border-b border-gray-400 text-xs shadow-sm">
+                General Notes ({editingNode.name.replace(/^\*/, '')})
               </div>
+              <div className="text-center text-gray-500 text-xs italic mt-6 px-2 w-full max-h-[100px] overflow-hidden selectable" style={{ wordBreak: 'break-word' }}>
+                {(() => {
+                  const noteId = `General_${editingNode.id}`;
+                  const noteHtml = parameterNotes[noteId] || '';
+                  if (!noteHtml) return 'No general notes yet.';
+                  const textNode = document.createElement('div');
+                  textNode.innerHTML = noteHtml;
+                  const pureText = textNode.textContent || textNode.innerText || '';
+                  return pureText ? pureText.substring(0, 100) + (pureText.length > 100 ? '...' : '') : 'No general notes yet.';
+                })()}
+              </div>
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-md flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+                onClick={() => {
+                  if (handleOpenNotesEditor) {
+                    handleOpenNotesEditor(`General_${editingNode.id}`, `General - ${editingNode.name.replace(/^\*/, '')}`);
+                  }
+                }}
+              >
+                <FileText size={16} /> Open in Tabbed Editor
+              </button>
             </div>
           </div>
 
@@ -907,6 +899,7 @@
       const [activeTab, setActiveTab] = useState('Keyword Tree');
       const [selectedNode, setSelectedNode] = useState(null);
       const [filterText, setFilterText] = useState('');
+      const [searchValues, setSearchValues] = useState(true);
       const [ppSearchText, setPpSearchText] = useState('');
       const [clipboard, setClipboard] = useState(null);
 
@@ -957,10 +950,14 @@
           .then(res => res.json())
           .then(data => {
             if (data.postProcessingTasks) setPostProcessingTasks(data.postProcessingTasks);
+            if (data.parameterNotes) setParameterNotes(data.parameterNotes);
           })
           .catch(err => {
             console.log('OneNote DB load failed, using local storage.');
-            try { setPostProcessingTasks(JSON.parse(localStorage.getItem('lsdyna_pp_tasks') || '[]')); } catch { }
+            try {
+              setPostProcessingTasks(JSON.parse(localStorage.getItem('lsdyna_pp_tasks') || '[]'));
+              setParameterNotes(JSON.parse(localStorage.getItem('lsdyna_param_notes') || '{}'));
+            } catch { }
           });
       }, []);
 
@@ -973,11 +970,11 @@
           fetch('/api/data?file=onenote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ postProcessingTasks })
+            body: JSON.stringify({ postProcessingTasks, parameterNotes })
           }).catch(console.error);
         }, 1500);
         return () => clearTimeout(t);
-      }, [postProcessingTasks]);
+      }, [postProcessingTasks, parameterNotes]);
       const [newPPTask, setNewPPTask] = useState('');
       const [ppContextMenu, setPpContextMenu] = useState({ visible: false, x: 0, y: 0, taskId: null });
 
@@ -1041,10 +1038,10 @@
       const [editingPPTask, setEditingPPTask] = useState(null);
       const [editingPPTaskText, setEditingPPTaskText] = useState('');
 
-      const handleOpenNotesEditor = useCallback((paramName) => {
+      const handleOpenNotesEditor = useCallback((paramName, customTitle) => {
         setEditorTabs(prev => {
           if (!prev.find(t => t.id === paramName)) {
-            return [...prev, { id: paramName, type: 'parameter', title: paramName }];
+            return [...prev, { id: paramName, type: 'parameter', title: customTitle || paramName }];
           }
           return prev;
         });
@@ -1083,19 +1080,7 @@
             setIsDirty(false); // Saved to local storage immediately
             return newNotes;
           });
-
-          // 2. Reflect in treeData instantly
-          setTreeData(prev => {
-            const updateFieldNote = (nodes) => {
-              return nodes.map(n => {
-                const newRows = n.rows ? n.rows.map(r => r.map(c => c.label === activeTab.id ? { ...c, quickNote: html } : c)) : undefined;
-                const updatedNode = newRows ? { ...n, rows: newRows } : n;
-                if (updatedNode.children) return { ...updatedNode, children: updateFieldNote(updatedNode.children) };
-                return updatedNode;
-              });
-            };
-            return updateFieldNote(prev);
-          });
+          // Note: Aggressive treeData clone removed here to prevent Jodit UI freezing
         } else if (activeTab.type === 'pp_task') {
           setPostProcessingTasks(prev => {
             const n = prev.map(t => t.id === activeTab.id ? { ...t, details: html } : t);
@@ -1760,16 +1745,25 @@
       const filterNodes = (nodes, text) => {
         if (!text) return nodes;
         return nodes.reduce((acc, node) => {
-          const matchesNode = node.name.toLowerCase().includes(text.toLowerCase());
+          const nameMatches = node.name.toLowerCase().includes(text.toLowerCase());
+          let valueMatches = false;
+          // Deep search in parameter values if checked
+          if (searchValues && node.rows) {
+            valueMatches = node.rows.some(r => r.some(c =>
+              (c.val && c.val.toLowerCase().includes(text.toLowerCase())) ||
+              (c.quickNote && c.quickNote.toLowerCase().includes(text.toLowerCase()))
+            ));
+          }
+
           const filteredChildren = node.children ? filterNodes(node.children, text) : undefined;
 
-          if (matchesNode || (filteredChildren && filteredChildren.length > 0)) {
+          if (nameMatches || valueMatches || (filteredChildren && filteredChildren.length > 0)) {
             acc.push({ ...node, children: node.children ? (filteredChildren || []) : undefined });
           }
           return acc;
         }, []);
       };
-      const filteredData = useMemo(() => filterNodes(treeData, filterText), [filterText, treeData]);
+      const filteredData = useMemo(() => filterNodes(treeData, filterText), [filterText, treeData, searchValues]);
 
       const toggleNode = (nodeId) => {
         setExpandedNodes(prev => {
@@ -2247,7 +2241,13 @@
                   {activeTab === 'Keyword Tree' && (
                     <div className="flex-1 border-t-2 border-white border-l-2 border-l-white border-r-2 border-r-gray-500 border-b-2 border-b-gray-500 m-2 p-3 flex flex-col gap-3 bg-[#f0f0f0] min-h-0" >
                       <div className="flex flex-col gap-1" >
-                        <label className="text-gray-700 font-semibold text-xs" > Filter / Search Keywords: </label>
+                        <label className="text-gray-700 font-semibold text-xs flex justify-between items-center" >
+                          <span>Filter / Search Keywords:</span>
+                          <label className="flex items-center gap-1 cursor-pointer font-normal text-[10px] text-blue-700 hover:bg-blue-50 border border-gray-300 px-1 bg-white rounded shadow-sm">
+                            <input type="checkbox" checked={searchValues} onChange={e => setSearchValues(e.target.checked)} />
+                            İçeriği de Ara
+                          </label>
+                        </label>
                         < div className="flex items-center gap-2" >
                           <div className="relative flex-1" >
                             <input type="text" className="w-full border-2 border-gray-500 border-r-white border-b-white bg-white px-2 py-1 text-sm shadow-inner outline-none focus:border-blue-800"
