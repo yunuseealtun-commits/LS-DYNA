@@ -127,13 +127,8 @@ const MindMapNode = ({ node, updateNode, deleteNode, startDrawEdge, completeEdge
             {node.globalNote && (
               <div className="p-2 text-[10px] text-gray-600 border-t border-gray-100 bg-[#f8fafc] max-h-[100px] overflow-y-auto" dangerouslySetInnerHTML={{ __html: node.globalNote }} />
             )}
-            <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
-              <JoditReactEditor
-                value={node.text || ''}
-                onChange={(val) => updateNode(node.id, { text: val })}
-                placeholder="Type your notes..."
-                className="flex-1 border-0"
-              />
+            <div className="flex-1 node-content flex flex-col min-h-[10px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
+              {/* Central Editor handles this now */}
             </div>
           </div>
         ) : (
@@ -167,13 +162,8 @@ const MindMapNode = ({ node, updateNode, deleteNode, startDrawEdge, completeEdge
               </div>
               <button onPointerDown={(e) => e.stopPropagation()} onClick={() => deleteNode(node.id)} className="text-gray-400 hover:text-red-500 shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
             </div>
-            <div className="flex-1 node-content cursor-text flex flex-col min-h-[40px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
-              <JoditReactEditor
-                value={node.text || ''}
-                onChange={(val) => updateNode(node.id, { text: val })}
-                placeholder="Type your notes..."
-                className="flex-1 border-0"
-              />
+            <div className="flex-1 node-content flex flex-col min-h-[10px] w-full box-border bg-white pointer-events-auto rounded-b-xl" onPointerDown={e => { e.stopPropagation(); if (setActiveNodeId) setActiveNodeId(node.id); }}>
+              {/* Central Editor handles this now */}
             </div>
           </div>
         )}
@@ -371,277 +361,310 @@ const MindMapCanvas = () => {
   }, [canvasCtx.visible, edgeCtx.visible]);
 
   return (
-    <div className="relative w-full h-full bg-[#f8fafc] overflow-hidden mindmap-scroll-container shadow-inner touch-none"
-      style={{
-        backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)',
-        backgroundSize: `${20 * transform.scale}px ${20 * transform.scale}px`,
-        backgroundPosition: `${transform.x}px ${transform.y}px`
-      }}
-      onWheel={handleWheel}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        // Try both dataTransfer and context state for maximum reliability
-        const id = e.dataTransfer.getData('text/plain') || draggedNodeId;
-        if (id) {
-          const treeNode = findNodeById(treeData, id);
-          if (treeNode && treeNode.type !== 'group') {
-            const rect = e.currentTarget.getBoundingClientRect();
-            let nx = (e.clientX - rect.left - transform.x) / transform.scale;
-            let ny = (e.clientY - rect.top - transform.y) / transform.scale;
-            if (snapToGrid) {
-              nx = Math.round(nx / 20) * 20;
-              ny = Math.round(ny / 20) * 20;
-            }
-            setNodes(ns => [...ns, {
-              id: Date.now().toString(),
-              type: 'keyword',
-              keywordId: treeNode.id,
-              name: treeNode.name,
-              globalNote: treeNode.globalNote, // Transfer global note if exists
-              x: nx, y: ny, text: ''
-            }]);
-          }
-        }
-        if (setDraggedNodeId) setDraggedNodeId(null);
-      }}
-      onPointerDown={(e) => {
-        if (e.target.closest('.node-content') || e.target.closest('.edge-handle') || e.target.closest('.bg-\\[\\#000080\\]') || e.target.closest('.mindmap-toolbar') || e.target.closest('button') || e.target.closest('.mindmap-keyword-node')) return;
-        if (e.button === 2) return; // ignore right clicks for panning
-        setCanvasCtx({ visible: false, x: 0, y: 0 });
-        setIsPanning(true);
-        lastPanPos.current = { x: e.clientX, y: e.clientY };
-        if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
-      }}
-      onContextMenu={(e) => {
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON' && !e.target.closest('.node-content') && !e.target.closest('.mindmap-node-wrapper')) {
+    <div className="w-full h-full flex flex-col relative top-0 left-0 bg-[#e5e5e5]">
+      {/* 1. Main Canvas Area */}
+      <div
+        className="flex-1 flex flex-col w-full relative overflow-hidden mindmap-scroll-container shadow-inner touch-none"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)',
+          backgroundSize: `${20 * transform.scale}px ${20 * transform.scale}px`,
+          backgroundPosition: `${transform.x}px ${transform.y}px`
+        }}
+        onWheel={handleWheel}
+        onDragOver={(e) => {
           e.preventDefault();
-          setCanvasCtx({ visible: true, x: e.clientX, y: e.clientY });
-        }
-      }}
-      onPointerMove={(e) => {
-        if (isPanning) {
-          const dx = e.clientX - lastPanPos.current.x;
-          const dy = e.clientY - lastPanPos.current.y;
-          setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-          lastPanPos.current = { x: e.clientX, y: e.clientY };
-        } else if (drawingEdge) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          setDrawingEdge(prev => ({
-            ...prev,
-            currentX: (e.clientX - rect.left - transform.x) / transform.scale,
-            currentY: (e.clientY - rect.top - transform.y) / transform.scale
-          }));
-        } else if (edgeDragging) {
-          const rect = e.currentTarget.getBoundingClientRect();
-          setEdgeDragging(prev => ({
-            ...prev,
-            currentX: (e.clientX - rect.left - transform.x) / transform.scale,
-            currentY: (e.clientY - rect.top - transform.y) / transform.scale
-          }));
-        }
-      }}
-      onPointerUp={(e) => {
-        if (isPanning) {
-          setIsPanning(false);
-          if (e.currentTarget.releasePointerCapture) e.currentTarget.releasePointerCapture(e.pointerId);
-        }
-        if (drawingEdge) setDrawingEdge(null);
-        if (edgeDragging) {
-          // If released in empty space, delete the edge since it didn't trigger completeEdge on a node
-          setEdges(es => es.filter(ed => ed.id !== edgeDragging.edgeId));
-          setEdgeDragging(null);
-        }
-      }}
-    // Double click note creation disabled via user request. See canvasCtx Right Click menu for Add Note.
-    >
-      <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', width: '100%', height: '100%', position: 'absolute' }}>
-        <svg className="absolute inset-0 pointer-events-none" style={{ width: 10000, height: 10000, overflow: 'visible' }}>
-          <defs>
-            <marker id="arrow-forward" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-            </marker>
-            <marker id="arrow-reverse" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 10 0 L 0 5 L 10 10 z" fill="context-stroke" />
-            </marker>
-          </defs>
-          {edges.map(edge => {
-            if (edgeDragging && edgeDragging.edgeId === edge.id) return null; // hide while dragging detach
-            const fromNode = nodes.find(n => n.id === edge.from);
-            const toNode = nodes.find(n => n.id === edge.to);
-            if (!fromNode || !toNode) return null;
-
-            const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
-            const p2 = getHandlePos(toNode, edge.toHandle || 'left');
-            const pathStr = `M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${p2.x + p2.dx} ${p2.y + p2.dy}, ${p2.x} ${p2.y}`;
-
-            const midX = (p1.x + p2.x) / 2;
-            const midY = (p1.y + p2.y) / 2;
-
-            return (
-              <g key={edge.id} className="pointer-events-auto"
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const c = e.target.closest('.mindmap-scroll-container');
-                  const r = c ? c.getBoundingClientRect() : { left: 0, top: 0 };
-                  setEdgeCtx({ visible: true, x: e.clientX - r.left, y: e.clientY - r.top, edgeId: edge.id });
-                }}
-              >
-                <path d={pathStr} stroke="transparent" strokeWidth="20" fill="none" className="cursor-pointer hover:stroke-gray-300/30" />
-                <path d={pathStr} stroke={edge.color || '#000080'} strokeWidth="2" fill="none"
-                  markerEnd={edge.direction === 'none' || edge.direction === 'reverse' ? '' : 'url(#arrow-forward)'}
-                  markerStart={edge.direction === 'bidirectional' || edge.direction === 'reverse' ? 'url(#arrow-reverse)' : ''}
-                  style={{ stroke: edge.color || '#000080' }}
-                />
-                {edge.label && (
-                  <text x={midX} y={midY - 5} fill={edge.color || '#000080'} fontSize="10" textAnchor="middle" className="font-bold bg-white">{edge.label}</text>
-                )}
-                {/* Detach handle on the arrow head */}
-                <circle cx={p2.x} cy={p2.y} r="8" fill="transparent" className="cursor-grab hover:fill-red-500/20"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    const rect = e.currentTarget.closest('.mindmap-scroll-container').getBoundingClientRect();
-                    setEdgeDragging({ edgeId: edge.id, currentX: (e.clientX - rect.left - transform.x) / transform.scale, currentY: (e.clientY - rect.top - transform.y) / transform.scale });
-                  }}
-                />
-              </g>
-            );
-          })}
-          {drawingEdge && (
-            <path d={`M ${drawingEdge.startX} ${drawingEdge.startY} C ${drawingEdge.startX + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dx} ${drawingEdge.startY + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dy}, ${drawingEdge.currentX - 50} ${drawingEdge.currentY}, ${drawingEdge.currentX} ${drawingEdge.currentY}`} stroke="#0000ff" strokeWidth="2" strokeDasharray="5,5" fill="none" />
-          )}
-          {edgeDragging && (() => {
-            const edge = edges.find(e => e.id === edgeDragging.edgeId);
-            const fromNode = nodes.find(n => n.id === edge.from);
-            const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
-            return <path d={`M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${edgeDragging.currentX - 50} ${edgeDragging.currentY}, ${edgeDragging.currentX} ${edgeDragging.currentY}`} stroke={edge.color || '#000080'} strokeWidth="2" fill="none" markerEnd="url(#arrow-forward)" />
-          })()}
-          {/* Alignment Guides */}
-          {activeNodeId && (() => {
-            const activeNode = nodes.find(n => n.id === activeNodeId);
-            if (!activeNode) return null;
-            const guides = [];
-            nodes.forEach(n => {
-              if (n.id === activeNode.id) return;
-              if (Math.abs(n.x - activeNode.x) < 2) guides.push(<line x1={n.x} y1={-10000} x2={n.x} y2={10000} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
-              if (Math.abs(n.y - activeNode.y) < 2) guides.push(<line x1={-10000} y1={n.y} x2={10000} y2={n.y} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
-            });
-            return guides.map((g, i) => React.cloneElement(g, { key: `guide-${i}` }));
-          })()}
-        </svg>
-
-        {nodes.map(node => (
-          <MindMapNode key={node.id} node={node} updateNode={(id, updates) => {
-            if (snapToGrid && updates.x !== undefined && updates.y !== undefined) {
-              updates.x = Math.round(updates.x / 20) * 20;
-              updates.y = Math.round(updates.y / 20) * 20;
-            }
-            updateNode(id, updates);
-          }} deleteNode={deleteNode} startDrawEdge={startDrawEdge} completeEdge={completeEdge} setActiveNodeId={setActiveNodeId} activeNodeId={activeNodeId} snapToGrid={snapToGrid} transform={transform} />
-        ))}
-      </div>
-
-      <div className="absolute top-2 left-2 bg-yellow-100 p-2 text-[10px] border border-gray-400 pointer-events-none w-max z-30 opacity-80 shadow rounded text-gray-700">
-        <b>Right-click</b>: Canvas/Edge Menu<br />
-        <b>Drag Grid</b>: Pan Canvas<br />
-        <b>MouseWheel</b>: Zoom
-      </div>
-
-      {/* Floating Toolbar */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-40 mindmap-toolbar">
-        <div className="bg-white border border-gray-300 shadow-md rounded flex flex-col items-center">
-          <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.1, 3) }))} title="Zoom In">
-            <Plus size={16} />
-          </button>
-          <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={fitToScreen} title="Fit to Nodes">
-            <Scan size={16} />
-          </button>
-          <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.1, 0.1) }))} title="Zoom Out">
-            <Minus size={16} />
-          </button>
-        </div>
-        <div className="bg-white border border-gray-300 shadow-md rounded relative">
-          <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setShowSettings(!showSettings)} title="Settings">
-            <Settings size={16} />
-          </button>
-          {showSettings && (
-            <div className="absolute right-full top-0 mr-2 bg-white border shadow-lg rounded w-36 py-1 text-[11px] text-gray-700 flex flex-col border-gray-300">
-              <label className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 cursor-pointer">
-                <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
-                Snap to grid
-              </label>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Edge Context Menu */}
-      {edgeCtx.visible && (
-        <div
-          className="fixed w-36 bg-white border shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
-          style={{ top: edgeCtx.y, left: edgeCtx.x }}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div className="px-3 py-1 text-[10px] font-bold text-gray-400 border-b mb-1 uppercase tracking-wider">Edge Setup</div>
-          <button className="text-left px-3 py-1.5 hover:bg-red-50 text-red-600 font-medium flex items-center gap-2"
-            onClick={() => { setEdges(es => es.filter(e => e.id !== edgeCtx.edgeId)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}
-          >
-            <X size={12} /> Delete Edge
-          </button>
-          <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 flex items-center gap-2"
-            onClick={() => {
-              const lbl = window.prompt("Edge label:");
-              if (lbl !== null) setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, label: lbl } : e));
-              setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null });
-            }}
-          >
-            <Type size={12} /> Set Label
-          </button>
-          <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Direction</div>
-          <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'forward' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> → Forward </button>
-          <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'bidirectional' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ↔ Bidirectional </button>
-          <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'none' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ― None </button>
-          <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Color Picker</div>
-          <div className="flex gap-1 px-3 py-2 flex-wrap">
-            {['#000080', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#64748b'].map(c => (
-              <button key={c} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: c }} onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, color: c } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Canvas Context Menu */}
-      {canvasCtx.visible && (
-        <div
-          className="fixed w-32 bg-white border border-gray-300 shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
-          style={{ top: canvasCtx.y, left: canvasCtx.x }}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 font-medium flex items-center gap-2"
-            onClick={() => {
-              const scrollContainer = document.querySelector('.mindmap-scroll-container');
-              if (!scrollContainer) return;
-              const rect = scrollContainer.getBoundingClientRect();
-              let nx = (canvasCtx.x - rect.left - transform.x) / transform.scale;
-              let ny = (canvasCtx.y - rect.top - transform.y) / transform.scale;
+          e.dataTransfer.dropEffect = 'copy';
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const id = e.dataTransfer.getData('text/plain') || draggedNodeId;
+          if (id) {
+            const treeNode = findNodeById(treeData, id);
+            if (treeNode && treeNode.type !== 'group') {
+              const rect = e.currentTarget.getBoundingClientRect();
+              let nx = (e.clientX - rect.left - transform.x) / transform.scale;
+              let ny = (e.clientY - rect.top - transform.y) / transform.scale;
               if (snapToGrid) {
                 nx = Math.round(nx / 20) * 20;
                 ny = Math.round(ny / 20) * 20;
               }
-              setNodes(ns => [...ns, { id: Date.now().toString(), x: nx, y: ny, text: '' }]);
-              setCanvasCtx({ visible: false, x: 0, y: 0 });
-            }}
-          >
-            <Plus size={12} /> Add Note
-          </button>
+              setNodes(ns => [...ns, {
+                id: Date.now().toString(),
+                type: 'keyword',
+                keywordId: treeNode.id,
+                name: treeNode.name,
+                globalNote: treeNode.globalNote, // Transfer global note if exists
+                x: nx, y: ny, text: ''
+              }]);
+            }
+          }
+          if (setDraggedNodeId) setDraggedNodeId(null);
+        }}
+        onPointerDown={(e) => {
+          if (e.target.closest('.node-content') || e.target.closest('.edge-handle') || e.target.closest('.mindmap-toolbar') || e.target.closest('button')) return;
+          if (e.button === 2) return; // ignore right clicks for panning
+          setCanvasCtx({ visible: false, x: 0, y: 0 });
+          setIsPanning(true);
+          lastPanPos.current = { x: e.clientX, y: e.clientY };
+          if (e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onContextMenu={(e) => {
+          if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON' && !e.target.closest('.node-content') && !e.target.closest('.mindmap-node-wrapper')) {
+            e.preventDefault();
+            setCanvasCtx({ visible: true, x: e.clientX, y: e.clientY });
+          }
+        }}
+        onPointerMove={(e) => {
+          if (isPanning) {
+            const dx = e.clientX - lastPanPos.current.x;
+            const dy = e.clientY - lastPanPos.current.y;
+            setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+            lastPanPos.current = { x: e.clientX, y: e.clientY };
+          } else if (drawingEdge) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setDrawingEdge(prev => ({
+              ...prev,
+              currentX: (e.clientX - rect.left - transform.x) / transform.scale,
+              currentY: (e.clientY - rect.top - transform.y) / transform.scale
+            }));
+          } else if (edgeDragging) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setEdgeDragging(prev => ({
+              ...prev,
+              currentX: (e.clientX - rect.left - transform.x) / transform.scale,
+              currentY: (e.clientY - rect.top - transform.y) / transform.scale
+            }));
+          }
+        }}
+        onPointerUp={(e) => {
+          if (isPanning) {
+            setIsPanning(false);
+            if (e.currentTarget.releasePointerCapture) e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          if (drawingEdge) setDrawingEdge(null);
+          if (edgeDragging) {
+            // If released in empty space, delete the edge since it didn't trigger completeEdge on a node
+            setEdges(es => es.filter(ed => ed.id !== edgeDragging.edgeId));
+            setEdgeDragging(null);
+          }
+        }}
+      >
+        <div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, transformOrigin: '0 0', width: '100%', height: '100%', position: 'absolute' }}>
+          <svg className="absolute inset-0 pointer-events-none" style={{ width: 10000, height: 10000, overflow: 'visible' }}>
+            <defs>
+              <marker id="arrow-forward" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+              </marker>
+              <marker id="arrow-reverse" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 10 0 L 0 5 L 10 10 z" fill="context-stroke" />
+              </marker>
+            </defs>
+            {edges.map(edge => {
+              if (edgeDragging && edgeDragging.edgeId === edge.id) return null; // hide while dragging detach
+              const fromNode = nodes.find(n => n.id === edge.from);
+              const toNode = nodes.find(n => n.id === edge.to);
+              if (!fromNode || !toNode) return null;
+
+              const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
+              const p2 = getHandlePos(toNode, edge.toHandle || 'left');
+              const pathStr = `M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${p2.x + p2.dx} ${p2.y + p2.dy}, ${p2.x} ${p2.y}`;
+
+              const midX = (p1.x + p2.x) / 2;
+              const midY = (p1.y + p2.y) / 2;
+
+              return (
+                <g key={edge.id} className="pointer-events-auto"
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const c = e.target.closest('.mindmap-scroll-container');
+                    const r = c ? c.getBoundingClientRect() : { left: 0, top: 0 };
+                    setEdgeCtx({ visible: true, x: e.clientX - r.left, y: e.clientY - r.top, edgeId: edge.id });
+                  }}
+                >
+                  <path d={pathStr} stroke="transparent" strokeWidth="20" fill="none" className="cursor-pointer hover:stroke-gray-300/30" />
+                  <path d={pathStr} stroke={edge.color || '#000080'} strokeWidth="2" fill="none"
+                    markerEnd={edge.direction === 'none' || edge.direction === 'reverse' ? '' : 'url(#arrow-forward)'}
+                    markerStart={edge.direction === 'bidirectional' || edge.direction === 'reverse' ? 'url(#arrow-reverse)' : ''}
+                    style={{ stroke: edge.color || '#000080' }}
+                  />
+                  {edge.label && (
+                    <text x={midX} y={midY - 5} fill={edge.color || '#000080'} fontSize="10" textAnchor="middle" className="font-bold bg-white">{edge.label}</text>
+                  )}
+                  {/* Detach handle on the arrow head */}
+                  <circle cx={p2.x} cy={p2.y} r="8" fill="transparent" className="cursor-grab hover:fill-red-500/20"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.closest('.mindmap-scroll-container').getBoundingClientRect();
+                      setEdgeDragging({ edgeId: edge.id, currentX: (e.clientX - rect.left - transform.x) / transform.scale, currentY: (e.clientY - rect.top - transform.y) / transform.scale });
+                    }}
+                  />
+                </g>
+              );
+            })}
+            {drawingEdge && (
+              <path d={`M ${drawingEdge.startX} ${drawingEdge.startY} C ${drawingEdge.startX + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dx} ${drawingEdge.startY + getHandlePos(nodes.find(n => n.id === drawingEdge.from), drawingEdge.fromHandle).dy}, ${drawingEdge.currentX - 50} ${drawingEdge.currentY}, ${drawingEdge.currentX} ${drawingEdge.currentY}`} stroke="#0000ff" strokeWidth="2" strokeDasharray="5,5" fill="none" />
+            )}
+            {edgeDragging && (() => {
+              const edge = edges.find(e => e.id === edgeDragging.edgeId);
+              const fromNode = nodes.find(n => n.id === edge.from);
+              const p1 = getHandlePos(fromNode, edge.fromHandle || 'right');
+              return <path d={`M ${p1.x} ${p1.y} C ${p1.x + p1.dx} ${p1.y + p1.dy}, ${edgeDragging.currentX - 50} ${edgeDragging.currentY}, ${edgeDragging.currentX} ${edgeDragging.currentY}`} stroke={edge.color || '#000080'} strokeWidth="2" fill="none" markerEnd="url(#arrow-forward)" />
+            })()}
+            {/* Alignment Guides */}
+            {activeNodeId && (() => {
+              const activeNode = nodes.find(n => n.id === activeNodeId);
+              if (!activeNode) return null;
+              const guides = [];
+              nodes.forEach(n => {
+                if (n.id === activeNode.id) return;
+                if (Math.abs(n.x - activeNode.x) < 2) guides.push(<line x1={n.x} y1={-10000} x2={n.x} y2={10000} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
+                if (Math.abs(n.y - activeNode.y) < 2) guides.push(<line x1={-10000} y1={n.y} x2={10000} y2={n.y} stroke="#f87171" strokeWidth="1" strokeDasharray="4,4" />);
+              });
+              return guides.map((g, i) => React.cloneElement(g, { key: `guide-${i}` }));
+            })()}
+          </svg>
+
+          {nodes.map(node => (
+            <MindMapNode key={node.id} node={node} updateNode={(id, updates) => {
+              if (snapToGrid && updates.x !== undefined && updates.y !== undefined) {
+                updates.x = Math.round(updates.x / 20) * 20;
+                updates.y = Math.round(updates.y / 20) * 20;
+              }
+              updateNode(id, updates);
+            }} deleteNode={deleteNode} startDrawEdge={startDrawEdge} completeEdge={completeEdge} setActiveNodeId={setActiveNodeId} activeNodeId={activeNodeId} snapToGrid={snapToGrid} transform={transform} />
+          ))}
         </div>
-      )}
+
+        <div className="absolute top-2 left-2 bg-yellow-100 p-2 text-[10px] border border-gray-400 pointer-events-none w-max z-30 opacity-80 shadow rounded text-gray-700">
+          <b>Right-click</b>: Canvas/Edge Menu<br />
+          <b>Drag Grid</b>: Pan Canvas<br />
+          <b>MouseWheel</b>: Zoom
+        </div>
+
+        {/* Floating Toolbar */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-40 mindmap-toolbar">
+          <div className="bg-white border border-gray-300 shadow-md rounded flex flex-col items-center">
+            <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.1, 3) }))} title="Zoom In">
+              <Plus size={16} />
+            </button>
+            <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors border-b border-gray-200 w-full flex justify-center" onClick={fitToScreen} title="Fit to Nodes">
+              <Scan size={16} />
+            </button>
+            <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.1, 0.1) }))} title="Zoom Out">
+              <Minus size={16} />
+            </button>
+          </div>
+          <div className="bg-white border border-gray-300 shadow-md rounded relative">
+            <button className="p-2 hover:bg-gray-100 hover:text-blue-600 transition-colors w-full flex justify-center" onClick={() => setShowSettings(!showSettings)} title="Settings">
+              <Settings size={16} />
+            </button>
+            {showSettings && (
+              <div className="absolute right-full top-0 mr-2 bg-white border shadow-lg rounded w-36 py-1 text-[11px] text-gray-700 flex flex-col border-gray-300">
+                <label className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 cursor-pointer">
+                  <input type="checkbox" checked={snapToGrid} onChange={e => setSnapToGrid(e.target.checked)} />
+                  Snap to grid
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Edge Context Menu */}
+        {edgeCtx.visible && (
+          <div
+            className="fixed w-36 bg-white border shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
+            style={{ top: edgeCtx.y, left: edgeCtx.x }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="px-3 py-1 text-[10px] font-bold text-gray-400 border-b mb-1 uppercase tracking-wider">Edge Setup</div>
+            <button className="text-left px-3 py-1.5 hover:bg-red-50 text-red-600 font-medium flex items-center gap-2"
+              onClick={() => { setEdges(es => es.filter(e => e.id !== edgeCtx.edgeId)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}
+            >
+              <X size={12} /> Delete Edge
+            </button>
+            <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 flex items-center gap-2"
+              onClick={() => {
+                const lbl = window.prompt("Edge label:");
+                if (lbl !== null) setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, label: lbl } : e));
+                setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null });
+              }}
+            >
+              <Type size={12} /> Set Label
+            </button>
+            <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Direction</div>
+            <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'forward' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> → Forward </button>
+            <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'bidirectional' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ↔ Bidirectional </button>
+            <button className="text-left px-3 py-1 hover:bg-blue-50 text-gray-700 flex items-center gap-2" onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, direction: 'none' } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }}> ― None </button>
+            <div className="px-3 py-1 mt-1 text-[10px] font-bold text-gray-400 border-b border-t uppercase tracking-wider">Color Picker</div>
+            <div className="flex gap-1 px-3 py-2 flex-wrap">
+              {['#000080', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#64748b'].map(c => (
+                <button key={c} className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: c }} onClick={() => { setEdges(es => es.map(e => e.id === edgeCtx.edgeId ? { ...e, color: c } : e)); setEdgeCtx({ visible: false, x: 0, y: 0, edgeId: null }); }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Canvas Context Menu */}
+        {canvasCtx.visible && (
+          <div
+            className="fixed w-32 bg-white border border-gray-300 shadow-lg z-[9999] py-1 flex flex-col text-xs rounded"
+            style={{ top: canvasCtx.y, left: canvasCtx.x }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button className="text-left px-3 py-1.5 hover:bg-blue-50 text-gray-700 font-medium flex items-center gap-2"
+              onClick={() => {
+                const scrollContainer = document.querySelector('.mindmap-scroll-container');
+                if (!scrollContainer) return;
+                const rect = scrollContainer.getBoundingClientRect();
+                let nx = (canvasCtx.x - rect.left - transform.x) / transform.scale;
+                let ny = (canvasCtx.y - rect.top - transform.y) / transform.scale;
+                if (snapToGrid) {
+                  nx = Math.round(nx / 20) * 20;
+                  ny = Math.round(ny / 20) * 20;
+                }
+                setNodes(ns => [...ns, { id: Date.now().toString(), x: nx, y: ny, text: '' }]);
+                setCanvasCtx({ visible: false, x: 0, y: 0 });
+              }}
+            >
+              <Plus size={12} /> Add Note
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 2. Centralized Global Editor Bottom Panel */}
+      {activeNodeId && (() => {
+        const activeNode = nodes.find(n => n.id === activeNodeId);
+        if (!activeNode) return null;
+        return (
+          <div className="h-[250px] shrink-0 border-t-2 border-gray-400 bg-white flex flex-col relative z-[500] shadow-[0_-5px_15px_-3px_rgba(0,0,0,0.15)]">
+            <div className="bg-[#000080] text-white px-3 py-1 flex justify-between items-center shrink-0 h-[28px]">
+              <div className="flex items-center gap-2 font-bold text-[10px] uppercase tracking-wider">
+                <FileText size={12} /> Düğüm Bilgisi: {activeNode.name || 'İsimsiz'}
+              </div>
+              <button
+                onClick={() => setActiveNodeId(null)}
+                className="hover:bg-red-500 rounded p-1 transition-colors"
+                title="Kapat"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col min-h-0 bg-white">
+              <JoditReactEditor
+                key={`editor-${activeNode.id}`} // Force re-render on node switch
+                value={activeNode.text || ''}
+                onChange={(val) => updateNode(activeNode.id, { text: val })}
+                className="flex-1 min-h-0 text-[12px] border-none"
+                placeholder="Notlarınızı buraya yazın..."
+              />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   )
 };
