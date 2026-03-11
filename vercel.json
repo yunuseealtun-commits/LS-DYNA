@@ -2,7 +2,11 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/auth/:path*",
+      "destination": "/api/data"
+    },
+    {
+      "source": "/api/drive/:path*",
       "destination": "/api/data"
     },
     {
