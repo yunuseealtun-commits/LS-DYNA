@@ -22,25 +22,45 @@
       "destination": "/api/data?route=drive_callback"
     },
     {
+      "source": "/api/data",
+      "destination": "/api/data"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
     {
-      "source": "/",
-      "destination": "/App/index.html"
+      "source": "/App/js/(.*)",
+      "destination": "/App/js/$1"
+    },
+    {
+      "source": "/App/css/(.*)",
+      "destination": "/App/css/$1"
+    },
+    {
+      "source": "/App/(.*)",
+      "destination": "/App/$1"
     },
     {
       "source": "/(.*)",
-      "destination": "/App/$1"
+      "destination": "/App/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,POST,OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type"
         }
       ]
     }
