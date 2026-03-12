@@ -26,23 +26,23 @@
       "destination": "/api/data"
     },
     {
+      "source": "/api/test",
+      "destination": "/api/test"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
     {
-      "source": "/App/js/(.*)",
-      "destination": "/App/js/$1"
+      "source": "/((?!api).*)/",
+      "destination": "/App/$1/index.html"
     },
     {
-      "source": "/App/css/(.*)",
-      "destination": "/App/css/$1"
-    },
-    {
-      "source": "/App/(.*)",
+      "source": "/((?!api).*)",
       "destination": "/App/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/",
       "destination": "/App/index.html"
     }
   ],
