@@ -101,13 +101,22 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                             token: {json.dumps(token_json)}
                         }};
                         
-                        console.log("Sending auth success to opener...");
-                        window.opener.postMessage(data, '*');
+                        console.log("Sending auth success to opener via postMessage...");
+                        try {
+                            window.opener.postMessage(data, '*');
+                        } catch (e) {
+                            console.error("postMessage failed:", e);
+                        }
                         
-                        // Small delay before closing to ensure message is sent
+                        // Fallback: Use localStorage to signal success to the main window
+                        // This works even if window.opener is null or cross-origin restricted
+                        console.log("Saving auth success to localStorage...");
+                        localStorage.setItem('lsdyna_google_auth_sync', JSON.stringify(data));
+                        
+                        // Small delay before closing to ensure message/storage is processed
                         setTimeout(() => {{
                             window.close();
-                        }}, 1000);
+                        }}, 1500);
                     </script>
                 </body>
                 </html>
