@@ -1398,7 +1398,39 @@
         try {
           const response = await fetch('/api/drive/login', { method: 'POST' });
           const data = await response.json();
-          if (response.ok && data.email) {
+          
+          if (data.url) {
+            const popup = window.open(data.url, 'GoogleLogin', 'width=500,height=600');
+            
+            const authListener = (event) => {
+              if (event.data && event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                window.removeEventListener('message', authListener);
+                const googleData = {
+                  email: event.data.email,
+                  token: event.data.token
+                };
+                setGoogleUser(googleData);
+                localStorage.setItem('lsdyna_google_user', JSON.stringify(googleData));
+                
+                if (auth && auth.isGoogleOAuth) {
+                  const newSession = { ...auth, googleToken: event.data.token, username: event.data.email };
+                  setAuth(newSession);
+                  localStorage.setItem('lsdyna_session', JSON.stringify(newSession));
+                }
+              }
+            };
+            window.addEventListener('message', authListener);
+
+            // Poll for popup closure
+            const poll = setInterval(() => {
+              if (popup && popup.closed) {
+                clearInterval(poll);
+                setTimeout(() => {
+                  window.removeEventListener('message', authListener);
+                }, 500);
+              }
+            }, 1000);
+          } else if (data.email) {
             setGoogleUser(data);
             localStorage.setItem('lsdyna_google_user', JSON.stringify(data));
           } else {
