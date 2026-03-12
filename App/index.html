@@ -1489,7 +1489,7 @@
       const handleEditorChange = useCallback((html) => {
         setIsDirty(true);
         const activeTab = editorTabs.find(t => t.id === activeTabId);
-        if (!activeTab) return;
+        if (!activeTab) return; // Keep this guard clause
 
         if (activeTab.type === 'parameter') {
           // 1. Update parameterNotes mapping
@@ -1498,7 +1498,7 @@
             // Robust crash-proof local storage
             localStorage.setItem('lsdyna_param_notes', JSON.stringify(newNotes));
             setLastSaved(new Date().toLocaleTimeString());
-            setIsDirty(false); // Saved to local storage immediately
+            // setIsDirty(false); // Removed as per instruction
             return newNotes;
           });
           // Note: Aggressive treeData clone removed here to prevent Jodit UI freezing
@@ -3213,7 +3213,7 @@
                     {/* Hierarchy Info */}
                     <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-[11px] text-blue-800 leading-relaxed">
                       <p className="font-bold mb-1">Automated Cloud Organization:</p>
-                      All notes are now automatically organized into the <span className="font-bold underline">LS-DYNA Research</span> root folder on your Drive with a hierarchical structure (Keyword {'>'} Notes).
+                      All notes are now automatically organized into the <span className="font-bold underline">LS-DYNA Research</span> root folder on your Drive with a hierarchical structure (Keyword &gt; Notes).
                     </div>
                   </div>
                 </div>
