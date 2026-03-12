@@ -1,5 +1,5 @@
 const { useState, useEffect, useCallback, useRef, useContext } = React;
-const { Minus, Plus, Search, FileText, Folder, Settings, X, Square, Scan, Type } = window.LucideReact || LucideReact;
+const { Minus, Plus, Search, FileText, Folder, Settings, X, Square, Scan, Type, LogOut } = window.LucideReact || LucideReact;
 const { AppContext, JoditReactEditor } = window;
 
 // ================= MIND MAP COMPONENT =================
@@ -717,7 +717,7 @@ const MindMapCanvas = () => {
 };
 
 // ================= TASKBAR COMPONENT =================
-const TaskBar = ({ windows, onWindowClick }) => {
+const TaskBar = ({ windows, onWindowClick, onLogout }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
   useEffect(() => {
@@ -728,8 +728,11 @@ const TaskBar = ({ windows, onWindowClick }) => {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-[30px] bg-[#c0c0c0] border-t-2 border-white flex justify-between items-center px-1 z-[99999]">
       <div className="flex gap-1 overflow-x-auto h-full items-center py-1">
-        <button className="flex items-center gap-1 px-2 h-full bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white font-bold mr-2">
-          <span className="text-blue-800 italic pr-1">Start</span>
+        <button className="flex items-center gap-1 px-2 h-full bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white font-bold mr-2 group">
+          <div className="w-4 h-4 bg-blue-800 rounded-sm flex items-center justify-center mr-1">
+             <Settings size={10} className="text-white" />
+          </div>
+          <span className="text-black pr-1">Start</span>
         </button>
         <div className="w-[2px] h-full border-l border-gray-500 border-r border-white mx-1"></div>
         {windows.map(win => (
@@ -746,8 +749,15 @@ const TaskBar = ({ windows, onWindowClick }) => {
           </button>
         ))}
       </div>
-      <div className="flex items-center h-full py-1">
-        <div className="h-full px-2 flex items-center border-2 border-gray-600 border-r-white border-b-white shadow-inner text-xs bg-[#c0c0c0]">
+      <div className="flex items-center h-full py-1 gap-1">
+        <button 
+          onClick={onLogout}
+          className="flex items-center gap-1 px-2 h-full bg-[#c0c0c0] border-2 border-white border-r-gray-600 border-b-gray-600 active:border-gray-600 active:border-r-white active:border-b-white font-bold hover:bg-red-50 text-red-700 text-[10px]"
+          title="Çıkış Yap / Logout"
+        >
+          <LogOut size={12} /> <span className="hidden sm:inline">Logout</span>
+        </button>
+        <div className="h-full px-2 flex items-center border-2 border-gray-600 border-r-white border-b-white shadow-inner text-xs bg-[#c0c0c0] min-w-[60px] justify-center">
           {time}
         </div>
       </div>
