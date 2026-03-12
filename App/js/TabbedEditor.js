@@ -72,10 +72,7 @@ const TabbedEditor = ({
 
   const syncToDrive = async () => {
     if (!activeTab) return;
-    if (!googleUser) {
-      alert("Please login with Google first.");
-      return;
-    }
+    if (!googleUser) return;
 
     setSyncStatus('syncing');
     setSyncError(null);
@@ -100,11 +97,7 @@ const TabbedEditor = ({
       if (response.ok) {
         setSyncStatus('success');
         setSyncedDocUrl(data.url);
-        // Don't auto-clear success if we want to show the link
-        // setTimeout(() => setSyncStatus('idle'), 5000); 
-        if (data.url) {
-          console.log("Synced to Google Drive:", data.url);
-        }
+        setTimeout(() => setSyncStatus('idle'), 3000);
       } else {
         throw new Error(data.error || 'Sync failed');
       }
@@ -114,6 +107,17 @@ const TabbedEditor = ({
       console.error("Drive Sync Error:", err);
     }
   };
+
+  // Auto-Sync Logic (Phase 18)
+  useEffect(() => {
+    if (!googleUser || !activeTabId || !isDirty) return;
+    
+    const timer = setTimeout(() => {
+        syncToDrive();
+    }, 2000); // 2 second debounce for cloud sync
+    
+    return () => clearTimeout(timer);
+  }, [activeTabId, isDirty, googleUser]);
 
   return (
     <DraggableWindow
