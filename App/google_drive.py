@@ -62,6 +62,9 @@ class GoogleDriveManager:
             scopes=SCOPES,
             redirect_uri=redirect_uri
         )
+        # Fix for "Missing code verifier" in stateless serverless environments:
+        # Use a fixed code verifier to ensure consistency between auth URL generation and token exchange.
+        flow.code_verifier = "ls-dyna-research-not-so-secret-code-verifier-stateless-vercel-fix"
         auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
         return auth_url
 
@@ -72,6 +75,8 @@ class GoogleDriveManager:
             scopes=SCOPES,
             redirect_uri=redirect_uri
         )
+        # Use the same fixed code verifier as in get_auth_url
+        flow.code_verifier = "ls-dyna-research-not-so-secret-code-verifier-stateless-vercel-fix"
         # Fetch token using the full callback URL containing the code
         flow.fetch_token(authorization_response=authorization_response_url)
         creds = flow.credentials
