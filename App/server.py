@@ -76,56 +76,57 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                 
                 user_email, token_json = drive_manager.fetch_token(full_url, redirect_uri)
                 
-                html = f"""
+                # Use a safe way to format the HTML without brace conflicts
+                html_template = """
                 <html>
                 <head>
                     <title>Authentication Successful</title>
                     <style>
-                        body {{ font-family: sans-serif; display: flex; flex-direction: column; items-center: center; justify-content: center; height: 100vh; margin: 0; background: #f0f4f8; color: #334155; }}
-                        .card {{ background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; border: 1px solid #e2e8f0; }}
-                        .btn {{ margin-top: 1rem; padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }}
-                        .btn:hover {{ background: #1d4ed8; }}
+                        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f4f8; color: #334155; }
+                        .card { background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; border: 1px solid #e2e8f0; }
+                        .btn { margin-top: 1rem; padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
+                        .btn:hover { background: #1d4ed8; }
                     </style>
                 </head>
                 <body>
                     <div class="card">
                         <h2 style="color: #059669;">✔ Authentication Successful</h2>
-                        <p>Your Google account has been connected.</p>
-                        <p style="font-size: 0.8rem; color: #64748b;">( {user_email} )</p>
+                        <p>Your Google account has been connected successfully.</p>
+                        <p style="font-size: 0.8rem; color: #64748b;">( %s )</p>
                         <button class="btn" onclick="window.close()">Close Window</button>
                     </div>
                     <script>
-                        const data = {{
+                        const data = {
                             type: 'GOOGLE_AUTH_SUCCESS',
-                            email: '{user_email}',
-                            token: {json.dumps(token_json)}
-                        }};
+                            email: '%s',
+                            token: %s
+                        };
                         
-                        console.log("Sending auth success to opener via postMessage...");
+                        console.log("Sending auth success via postMessage...");
                         try {
-                            window.opener.postMessage(data, '*');
+                            if (window.opener) {
+                                window.opener.postMessage(data, '*');
+                            }
                         } catch (e) {
                             console.error("postMessage failed:", e);
                         }
                         
-                        // Fallback: Use localStorage to signal success to the main window
-                        // This works even if window.opener is null or cross-origin restricted
                         console.log("Saving auth success to localStorage...");
                         localStorage.setItem('lsdyna_google_auth_sync', JSON.stringify(data));
                         
-                        // Small delay before closing to ensure message/storage is processed
-                        setTimeout(() => {{
+                        setTimeout(() => {
                             window.close();
-                        }}, 1500);
+                        }, 1500);
                     </script>
                 </body>
                 </html>
-                """
+                """ % (user_email, user_email, json.dumps(token_json))
+                
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(html.encode('utf-8'))
+                self.wfile.write(html_template.encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-type', 'text/html')
