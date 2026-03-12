@@ -242,6 +242,8 @@ class GoogleDriveManager:
                 }
             })
 
+            if not self.docs_service:
+                raise Exception("Docs service not initialized")
             self.docs_service.documents().batchUpdate(
                 documentId=doc_id, body={'requests': requests}).execute()
         except Exception as e:
