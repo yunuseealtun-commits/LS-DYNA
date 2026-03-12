@@ -2349,25 +2349,6 @@
                 <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
               </div>
 
-                <Folder size={36} className="text-yellow-400 drop-shadow-md group-active:text-yellow-200 fill-yellow-400" />
-                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
-              </div>
-
-            {/* Desktop Icons Layer */}
-            <div className="absolute inset-0 z-[5] p-4 pointer-events-none flex flex-col gap-4 flex-wrap content-start">
-              <div
-                className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group"
-                onDoubleClick={() => {
-                  setMainWindowClosed(false);
-                  setMainWindowMinimized(false);
-                  setMainWindowZ(maxZIndex + 1);
-                  setMaxZIndex(prev => prev + 1);
-                }}
-              >
-                <Settings size={36} className="text-white drop-shadow-md group-active:text-blue-300" />
-                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
-              </div>
-
               <div
                 className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group mt-4"
                 onDoubleClick={() => {
@@ -3155,6 +3136,89 @@
                 </div>
               </DraggableWindow>
             </div>
+
+            {/* Settings Window (Phase 18) */}
+            {isSettingsOpen && (
+              <DraggableWindow
+                id="settings"
+                title={<><Settings size={14} className="inline mr-1 text-gray-700" /> System Settings</>}
+                initialPos={settingsWindow.pos}
+                zIndex={settingsWindow.zIndex}
+                width={450} height={350}
+                isMinimized={settingsWindow.isMinimized}
+                onMinimize={() => setSettingsWindow(prev => ({ ...prev, isMinimized: true }))}
+                isMaximized={settingsWindow.isMaximized}
+                onMaximize={() => setSettingsWindow(prev => ({ ...prev, isMaximized: !prev.isMaximized }))}
+                onClose={() => setIsSettingsOpen(false)}
+                onFocus={() => {
+                  const newZ = maxZIndex + 1;
+                  setMaxZIndex(newZ);
+                  setSettingsWindow(prev => ({ ...prev, zIndex: newZ }));
+                }}
+              >
+                <div className="w-full h-full flex flex-col bg-[#f0f0f0] p-4 font-sans text-sm">
+                  <div className="flex flex-col gap-6">
+                    {/* Google Drive Connection Section */}
+                    <div className="border border-gray-400 bg-white p-4 shadow-sm rounded">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100">
+                          <img src="https://www.google.com/favicon.ico" className="w-6 h-6" alt="Google" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-800">Google Drive Integration</h3>
+                          <p className="text-[11px] text-gray-500">Cloud synchronization and automated backups</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 border border-gray-200 p-3 rounded-lg mb-4">
+                        {!googleUser ? (
+                          <div className="flex flex-col gap-2">
+                             <div className="flex items-center gap-2 text-orange-600 text-xs font-semibold">
+                               <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                               Disconnected
+                             </div>
+                             <p className="text-[11px] text-gray-600">Connect to your Google account to enable automatic hierarchical syncing to 'LS-DYNA Research' folder.</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                             <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
+                               <div className="w-2 h-2 rounded-full bg-green-500" />
+                               Connected
+                             </div>
+                             <div className="text-[11px] font-bold text-gray-700 mt-1 truncate">{googleUser.email}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {!googleUser ? (
+                        <button
+                          onClick={loginWithGoogle}
+                          className="w-full bg-[#000080] text-white py-2 rounded font-bold shadow-md hover:bg-blue-800 active:translate-y-0.5 transition-all text-sm flex items-center justify-center gap-2"
+                        >
+                          <img src="https://www.google.com/favicon.ico" className="w-4 h-4 bg-white rounded-full p-[1px]" alt="" />
+                          Connect Google Drive
+                        </button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={logoutGoogle}
+                            className="flex-1 bg-white border border-red-200 text-red-600 py-2 rounded font-bold hover:bg-red-50 text-xs transition-colors"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hierarchy Info */}
+                    <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-[11px] text-blue-800 leading-relaxed">
+                      <p className="font-bold mb-1">Automated Cloud Organization:</p>
+                      All notes are now automatically organized into the <span className="font-bold underline">LS-DYNA Research</span> root folder on your Drive with a hierarchical structure (Keyword > Notes).
+                    </div>
+                  </div>
+                </div>
+              </DraggableWindow>
+            )}
 
             {/* Tabbed Editor Overlay */}
             <TabbedEditor
