@@ -1482,9 +1482,9 @@
             }, 1000);
 
             // Poll for popup closure
-            const poll = setInterval(() => {
+            const pollPopup = setInterval(() => {
               if (popup && popup.closed) {
-                clearInterval(poll);
+                clearInterval(pollPopup);
                 clearInterval(storagePoll);
                 setTimeout(() => {
                   window.removeEventListener('message', authListener);
