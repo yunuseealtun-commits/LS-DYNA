@@ -122,11 +122,20 @@ class GoogleDriveManager:
         self.docs_service = build('docs', 'v1', credentials=creds)
         return self.service
 
+    def get_root_folder_id(self):
+        """Ensures the 'LS-DYNA Research' root folder exists and returns its ID."""
+        return self.get_or_create_folder("LS-DYNA Research")
+
     def get_or_create_folder(self, name, parent_id=None):
         """Finds or creates a folder by name under a parent."""
         query = f"name = '{name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         if parent_id:
             query += f" and '{parent_id}' in parents"
+        else:
+            # If no parent provided, we check if it's the root folder itself or if we should use the root
+            if name != "LS-DYNA Research":
+                parent_id = self.get_root_folder_id()
+                query += f" and '{parent_id}' in parents"
         
         results = self.service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
         files = results.get('files', [])
