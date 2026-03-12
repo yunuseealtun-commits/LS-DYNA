@@ -920,19 +920,6 @@
                         >
                           <FileText size={10} /> Open in Tabbed Editor
                         </button>
-                        <button
-                          className={`ml-1 border px-2 py-0.5 text-[10px] rounded shadow-sm flex items-center gap-1 cursor-pointer transition-all ${driveSyncStatus[selectedParameter] === 'syncing' ? 'bg-gray-100 text-gray-400 cursor-wait' :
-                              driveSyncStatus[selectedParameter] === 'success' ? 'bg-green-100 text-green-700 border-green-200' :
-                                driveSyncStatus[selectedParameter] === 'error' ? 'bg-red-100 text-red-700 border-red-200' :
-                                  'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                            }`}
-                          onClick={() => syncToDrive(selectedParameter, selectedParameter, parameterNotes[selectedParameter] || '')}
-                          disabled={driveSyncStatus[selectedParameter] === 'syncing'}
-                        >
-                          <span className={driveSyncStatus[selectedParameter] === 'syncing' ? 'animate-spin' : ''}>☁</span>
-                          {driveSyncStatus[selectedParameter] === 'syncing' ? 'Syncing...' :
-                            driveSyncStatus[selectedParameter] === 'success' ? 'Synced' : 'Sync to Drive'}
-                        </button>
                       </div>
                       <div className="flex-1 w-full min-h-0 min-w-0 text-gray-500 italic p-1 selectable" style={{ wordBreak: 'break-word', overflowY: 'auto' }}>
                         {(() => {
@@ -980,19 +967,6 @@
                     }}
                   >
                     <Plus size={12} /> Open in Tabbed Editor
-                  </button>
-                  <button
-                    className={`w-full border-2 border-white border-r-gray-500 border-b-gray-500 py-1.5 px-2 text-[10px] font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'bg-gray-200 text-gray-500 cursor-wait' :
-                        driveSyncStatus[`General_${editingNode.id}`] === 'success' ? 'bg-green-100 text-green-700' :
-                          driveSyncStatus[`General_${editingNode.id}`] === 'error' ? 'bg-red-100 text-red-700' :
-                            'bg-white text-gray-600 hover:bg-gray-50'
-                      }`}
-                    onClick={() => syncToDrive(`General_${editingNode.id}`, 'General Notes', parameterNotes[`General_${editingNode.id}`] || '', 'general')}
-                    disabled={driveSyncStatus[`General_${editingNode.id}`] === 'syncing'}
-                  >
-                    <span className={driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'animate-spin' : ''}>☁</span>
-                    {driveSyncStatus[`General_${editingNode.id}`] === 'syncing' ? 'Syncing...' :
-                      driveSyncStatus[`General_${editingNode.id}`] === 'success' ? 'Synced to Drive' : 'Sync to Google Drive'}
                   </button>
                 </div>
               </div>
@@ -2371,17 +2345,26 @@
                 <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
               </div>
 
+                <Folder size={36} className="text-yellow-400 drop-shadow-md group-active:text-yellow-200 fill-yellow-400" />
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
+              </div>
+
               <div
                 className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group mt-4"
                 onDoubleClick={() => {
-                  setIsMindMapOpen(true);
+                  setIsSettingsOpen(true);
                   const newZ = maxZIndex + 1;
-                  setMindMapWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
+                  setSettingsWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
                   setMaxZIndex(newZ);
                 }}
               >
-                <Folder size={36} className="text-yellow-400 drop-shadow-md group-active:text-yellow-200 fill-yellow-400" />
-                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
+                <div className="relative">
+                  <Settings size={36} className="text-gray-300 drop-shadow-md group-active:text-white" />
+                  <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white">
+                    <img src="https://www.google.com/favicon.ico" className="w-2 h-2" alt="" />
+                  </div>
+                </div>
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Settings</span>
               </div>
             </div>
 
