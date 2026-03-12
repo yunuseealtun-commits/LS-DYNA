@@ -1117,13 +1117,20 @@
             const popup = window.open(data.url, 'GoogleLogin', 'width=500,height=600');
             
             const authListener = (event) => {
-                if (event.data && event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                console.log("AuthGate: Received message:", event.data);
+                let messageData = event.data;
+                if (typeof messageData === 'string') {
+                    try { messageData = JSON.parse(messageData); } catch (e) { return; }
+                }
+
+                if (messageData && messageData.type === 'GOOGLE_AUTH_SUCCESS') {
+                    console.log("AuthGate: SUCCESS:", messageData.email);
                     window.removeEventListener('message', authListener);
                     setGoogleLoading(false);
                     const session = { 
-                        username: event.data.email, 
+                        username: messageData.email, 
                         isGoogleOAuth: true,
-                        googleToken: event.data.token
+                        googleToken: messageData.token
                     };
                     localStorage.setItem('lsdyna_session', JSON.stringify(session));
                     onLogin(session);
@@ -1403,20 +1410,33 @@
             const popup = window.open(data.url, 'GoogleLogin', 'width=500,height=600');
             
             const authListener = (event) => {
-              if (event.data && event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+              console.log("Received message from popup:", event.data);
+              
+              // Handle both object and stringified structures
+              let messageData = event.data;
+              if (typeof messageData === 'string') {
+                try { messageData = JSON.parse(messageData); } catch (e) { return; }
+              }
+
+              if (messageData && messageData.type === 'GOOGLE_AUTH_SUCCESS') {
+                console.log("SUCCESS: Google authentication received:", messageData.email);
                 window.removeEventListener('message', authListener);
+                
                 const googleData = {
-                  email: event.data.email,
-                  token: event.data.token
+                  email: messageData.email,
+                  token: messageData.token
                 };
+                
                 setGoogleUser(googleData);
                 localStorage.setItem('lsdyna_google_user', JSON.stringify(googleData));
                 
                 if (auth && auth.isGoogleOAuth) {
-                  const newSession = { ...auth, googleToken: event.data.token, username: event.data.email };
+                  const newSession = { ...auth, googleToken: messageData.token, username: messageData.email };
                   setAuth(newSession);
                   localStorage.setItem('lsdyna_session', JSON.stringify(newSession));
                 }
+                
+                alert("Google Drive Başarıyla Bağlandı: " + messageData.email);
               }
             };
             window.addEventListener('message', authListener);
