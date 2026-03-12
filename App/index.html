@@ -1312,6 +1312,10 @@
       const [isMindMapOpen, setIsMindMapOpen] = useState(false);
       const [mindMapWindow, setMindMapWindow] = useState({ isMinimized: false, isMaximized: false, zIndex: 12, pos: { x: 50, y: 50 } });
 
+      // Settings state (Phase 18)
+      const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+      const [settingsWindow, setSettingsWindow] = useState({ isMinimized: false, isMaximized: false, zIndex: 14, pos: { x: 80, y: 80 } });
+
       // Notes Editor Management & Tabs State
       const [editorTabs, setEditorTabs] = useState([]); // Array of { id: string, type: 'parameter'|'pp_task', title: string }
       const [activeTabId, setActiveTabId] = useState(null);
@@ -2349,6 +2353,34 @@
                 <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
               </div>
 
+            {/* Desktop Icons Layer */}
+            <div className="absolute inset-0 z-[5] p-4 pointer-events-none flex flex-col gap-4 flex-wrap content-start">
+              <div
+                className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group"
+                onDoubleClick={() => {
+                  setMainWindowClosed(false);
+                  setMainWindowMinimized(false);
+                  setMainWindowZ(maxZIndex + 1);
+                  setMaxZIndex(prev => prev + 1);
+                }}
+              >
+                <Settings size={36} className="text-white drop-shadow-md group-active:text-blue-300" />
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Keyword Manager</span>
+              </div>
+
+              <div
+                className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group mt-4"
+                onDoubleClick={() => {
+                  setIsMindMapOpen(true);
+                  const newZ = maxZIndex + 1;
+                  setMindMapWindow(prev => ({ ...prev, isMinimized: false, zIndex: newZ }));
+                  setMaxZIndex(newZ);
+                }}
+              >
+                <Folder size={36} className="text-yellow-400 drop-shadow-md group-active:text-yellow-200 fill-yellow-400" />
+                <span className="text-white text-[11px] font-bold text-center leading-tight [text-shadow:1px_1px_1px_rgba(0,0,0,0.8)]">Mind Map</span>
+              </div>
+
               <div
                 className="flex flex-col items-center gap-1 w-[85px] p-2 cursor-pointer hover:bg-white/20 rounded pointer-events-auto group mt-4"
                 onDoubleClick={() => {
@@ -2359,7 +2391,7 @@
                 }}
               >
                 <div className="relative">
-                  <Settings size={36} className="text-gray-300 drop-shadow-md group-active:text-white" />
+                  <LucideReact.Settings size={36} className="text-gray-300 drop-shadow-md group-active:text-white" />
                   <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border border-white">
                     <img src="https://www.google.com/favicon.ico" className="w-2 h-2" alt="" />
                   </div>
