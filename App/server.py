@@ -78,17 +78,37 @@ class KeywordManagerHandler(SimpleHTTPRequestHandler):
                 
                 html = f"""
                 <html>
-                <head><title>Authentication Successful</title></head>
+                <head>
+                    <title>Authentication Successful</title>
+                    <style>
+                        body {{ font-family: sans-serif; display: flex; flex-direction: column; items-center: center; justify-content: center; height: 100vh; margin: 0; background: #f0f4f8; color: #334155; }}
+                        .card {{ background: white; padding: 2rem; border-radius: 1rem; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; border: 1px solid #e2e8f0; }}
+                        .btn {{ margin-top: 1rem; padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }}
+                        .btn:hover {{ background: #1d4ed8; }}
+                    </style>
+                </head>
                 <body>
-                <script>
-                    window.opener.postMessage({{
-                        type: 'GOOGLE_AUTH_SUCCESS',
-                        email: '{user_email}',
-                        token: {json.dumps(token_json)}
-                    }}, '*');
-                    window.close();
-                </script>
-                <p>Authentication complete. You can close this window.</p>
+                    <div class="card">
+                        <h2 style="color: #059669;">✔ Authentication Successful</h2>
+                        <p>Your Google account has been connected.</p>
+                        <p style="font-size: 0.8rem; color: #64748b;">( {user_email} )</p>
+                        <button class="btn" onclick="window.close()">Close Window</button>
+                    </div>
+                    <script>
+                        const data = {{
+                            type: 'GOOGLE_AUTH_SUCCESS',
+                            email: '{user_email}',
+                            token: {json.dumps(token_json)}
+                        }};
+                        
+                        console.log("Sending auth success to opener...");
+                        window.opener.postMessage(data, '*');
+                        
+                        // Small delay before closing to ensure message is sent
+                        setTimeout(() => {{
+                            window.close();
+                        }}, 1000);
+                    </script>
                 </body>
                 </html>
                 """
